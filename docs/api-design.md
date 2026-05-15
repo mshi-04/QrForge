@@ -44,35 +44,36 @@ PNG bytes を保存、共有、独自デコードしたい利用者向けの API
 
 この API は `Bitmap` に依存しないため、保存や送信にも使いやすい。
 
-## 将来的な `QrOptions`
+## 将来的な `QrOptions`（Phase 4 以降）
 
 将来的には次のような option model を追加する。
 
 ```kotlin
 data class QrOptions(
-    val size: Int = 512,
-    val margin: Int = 4,
+    val size: Int = 512,    // 画像全体のピクセルサイズ
+    val margin: Int = 4,    // QR module 数単位のマージン
 )
 ```
 
-追加後の API 候補:
+追加後の API:
 
 ```kotlin
 object QrForge {
     fun createBitmap(text: String): Bitmap
-
-    fun createBitmap(
-        text: String,
-        options: QrOptions,
-    ): Bitmap
+    fun createBitmap(text: String, options: QrOptions): Bitmap
 
     fun createPngBytes(text: String): ByteArray
-
-    fun createPngBytes(
-        text: String,
-        options: QrOptions,
-    ): ByteArray
+    fun createPngBytes(text: String, options: QrOptions): ByteArray
 }
+```
+
+呼び出し例:
+
+```kotlin
+val bitmap = QrForge.createBitmap(
+    text = "https://example.com",
+    options = QrOptions(size = 768, margin = 6),
+)
 ```
 
 `QrOptions` を追加しても、option なし API の挙動は変えない。default 値は文書化し、Kotlin wrapper と Rust core の間で意味を揃える。
@@ -90,20 +91,6 @@ imageView.setImageBitmap(bitmap)
 
 ```kotlin
 val pngBytes = QrForge.createPngBytes("Hello QrForge")
-```
-
-### 将来的な options 指定
-
-```kotlin
-val options = QrOptions(
-    size = 768,
-    margin = 6,
-)
-
-val bitmap = QrForge.createBitmap(
-    text = "https://example.com",
-    options = options,
-)
 ```
 
 ## AppCompatImageView での表示例
@@ -193,6 +180,14 @@ JNI binding は internal package に置く。README、サンプル、docs の利
 
 Rust 側の exported JNI symbol も公開 API ではない。名前は JNI 仕様に従って必要になるが、互換性保証の対象として利用者に見せない。
 
+## スレッド安全性
+
+`QrForge` は `object`（シングルトン）として定義するが、内部状態は持たない設計にする。
+
+- 同期 API として提供し、呼び出し側が必要に応じてスレッド制御する。
+- 非同期 API（`suspend fun` 等）は Phase 4 以降、必要性が確認されてから追加する。
+- `QrForge` の関数は副作用を持たず、同一引数で同一結果を返す前提にする。
+
 ## API 互換性の考え方
 
 - `QrForge.createBitmap(text)` と `QrForge.createPngBytes(text)` は初期安定 API として扱う。
@@ -201,13 +196,16 @@ Rust 側の exported JNI symbol も公開 API ではない。名前は JNI 仕�
 - 例外の大分類を変える場合は docs を更新する。
 - public model に property を追加する場合は default 値を用意する。
 
-## 実装前の未決事項
+## 仕様決定済み事項
 
-実装前に次を確認する。
+以下は実装着手前に確定済み。
 
-- 空文字を拒否するか、空文字 QR を許可するか。
-- `QrOptions.size` は画像全体の pixel size か、QR module size か。
-- `QrOptions.margin` の単位は module 数か pixel 数か。
-- 初期 Rust QR 生成 crate と PNG encode crate を何にするか。
-- native library の module 名を何にするか。
-- Android library module を Phase 4 で作るか、Phase 5 で切り出すか。
+| 項目 | 決定内容 |
+|------|---------|
+| 空文字・blank の扱い | 拒否。`QrForgeException.InvalidInput` を投げる |
+| `QrOptions.size` の意味 | 画像全体のピクセルサイズ（例: `512` → 512×512 px） |
+| `QrOptions.margin` の単位 | QR module 数 |
+| Rust QR 生成 crate | `qrcode 0.14.1` |
+| Rust PNG エンコード crate | `image 0.25.10`（PNG feature） |
+| native library 名 | `qrforge`（`libqrforge.so`） |
+| Android library module 切り出し | Phase 5 で対応 |
