@@ -1,0 +1,3 @@
+[workspace]
+members = ["rust/qrforge-core"]
+resolver = "2"
