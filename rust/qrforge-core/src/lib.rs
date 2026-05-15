@@ -5,20 +5,34 @@ use std::io::Cursor;
 use image::{DynamicImage, ImageFormat, Luma};
 use qrcode::QrCode;
 
-pub use error::QrError;
+pub use error::QrForgeError;
 
 const DEFAULT_IMAGE_SIZE: u32 = 512;
 
-pub fn generate_qr_png(text: &str) -> Result<Vec<u8>, QrError> {
+pub struct QrOptions {
+    pub width: u32,
+    pub height: u32,
+}
+
+impl Default for QrOptions {
+    fn default() -> Self {
+        Self {
+            width: DEFAULT_IMAGE_SIZE,
+            height: DEFAULT_IMAGE_SIZE,
+        }
+    }
+}
+
+pub fn generate_qr_png(text: &str, options: &QrOptions) -> Result<Vec<u8>, QrForgeError> {
     if text.trim().is_empty() {
-        return Err(QrError::BlankInput);
+        return Err(QrForgeError::BlankInput);
     }
 
     let code = QrCode::new(text.as_bytes())?;
     let image = code
         .render::<Luma<u8>>()
         .quiet_zone(true)
-        .min_dimensions(DEFAULT_IMAGE_SIZE, DEFAULT_IMAGE_SIZE)
+        .min_dimensions(options.width, options.height)
         .build();
 
     let mut bytes = Vec::new();

@@ -21,5 +21,6 @@ QrForge は、Android/Kotlin から SDK のように呼び出せる Rust 製 QR 
 - [docs/coding-rules.md](docs/coding-rules.md): Kotlin、Rust、JNI の実装ルール
 - [docs/api-design.md](docs/api-design.md): Android 向け公開 API、例外、呼び出し例
 - [docs/review-rules.md](docs/review-rules.md): AI レビュー時の指摘分類、観点、出力形式
+- [docs/git-rules.md](docs/git-rules.md): Git 操作、コミットメッセージ、コミット前確認のルール
 
 詳細な判断は `docs/` 配下の文書を優先する。

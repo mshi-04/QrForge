@@ -2,13 +2,13 @@ use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 
 #[derive(Debug)]
-pub enum QrError {
+pub enum QrForgeError {
     BlankInput,
     QrEncoding(qrcode::types::QrError),
     PngEncoding(image::ImageError),
 }
 
-impl Display for QrError {
+impl Display for QrForgeError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Self::BlankInput => formatter.write_str("QR text must not be blank"),
@@ -18,7 +18,7 @@ impl Display for QrError {
     }
 }
 
-impl Error for QrError {
+impl Error for QrForgeError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::BlankInput => None,
@@ -28,13 +28,13 @@ impl Error for QrError {
     }
 }
 
-impl From<qrcode::types::QrError> for QrError {
+impl From<qrcode::types::QrError> for QrForgeError {
     fn from(error: qrcode::types::QrError) -> Self {
         Self::QrEncoding(error)
     }
 }
 
-impl From<image::ImageError> for QrError {
+impl From<image::ImageError> for QrForgeError {
     fn from(error: image::ImageError) -> Self {
         Self::PngEncoding(error)
     }
