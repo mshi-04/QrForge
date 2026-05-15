@@ -64,8 +64,9 @@ JNI bridge と Kotlin wrapper にはまだ責務を広げない。
 
 - `feature/<topic>` 形式を使う。topic は実装内容が分かる短い英語にする。
 - 例: `feature/rust-core`、`feature/jni-bridge`、`feature/kotlin-wrapper`
-- ブランチは `main`（またはデフォルトブランチ）から作成する。
-- 現在のブランチが使える場合は新規作成せず、完了後に PR で `main` へ取り込む。
+- ブランチは現在の統合ブランチから作成する。現時点では `develop` を基準にする。
+- 現在のブランチが使える場合は新規作成せず、完了後に PR で統合ブランチへ取り込む。
+- `main` はリリース反映先として扱い、通常の feature PR の直接取り込み先にしない。
 
 ## PR 説明のガイドライン
 
