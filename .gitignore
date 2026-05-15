@@ -21,6 +21,9 @@ target/
 
 # Native build outputs
 *.so
+!app/src/main/jniLibs/
+!app/src/main/jniLibs/**/
+!app/src/main/jniLibs/**/*.so
 *.dylib
 *.dll
 *.a

@@ -39,6 +39,8 @@ AI が実装する場合は、作業前に対象 Phase、変更予定ファイ�
 
 ### Core の独立性
 
+分離の設計方針は [architecture.md「Rust core と JNI bridge を分離する理由」](architecture.md) を参照。
+
 - Rust core は Android、JNI、Kotlin に依存しない。
 - QR 生成と PNG エンコードを core の責務にする。
 - JNI 向けの関数名、JNI 型、Android 固有のエラー表現を core に入れない。
@@ -156,9 +158,25 @@ AI が実装する場合は、作業前に対象 Phase、変更予定ファイ�
 - Rust の `unwrap` で不正入力時に panic させる。
 - docs の API 例と実装の API をずらす。
 
+## Rust の品質設定
+
+Rust crate には以下の lint 設定を推奨する。
+
+```rust
+#![deny(clippy::unwrap_used, clippy::expect_used)]
+```
+
+`unwrap` / `expect` の使用は、core logic では禁止。テストコードは除く。
+
+## Kotlin のフォーマット
+
+Phase 4 以降で ktlint または detekt を導入する。それまでは Android Studio のデフォルトフォーマッタに従う。
+
 ## 変更後の確認
 
-- Kotlin を変更したら Gradle の該当 task を実行する。
-- Rust を変更したら Cargo の該当 test を実行する。
-- JNI を変更したら Android 側から native library load と呼び出しを確認する。
+具体的なコマンドは [docs/setup.md](setup.md) と [development-plan.md「Phase 横断の確認方針」](development-plan.md) を参照。
+
+- Kotlin 変更時: `./gradlew :app:assembleDebug` と `./gradlew :app:testDebugUnitTest`
+- Rust 変更時: `cargo test --manifest-path rust/qrforge-core/Cargo.toml`
+- JNI 変更時: Android 側から native library load と呼び出しを確認する。
 - docs だけを変更した場合も、Git 差分でコード変更が混ざっていないことを確認する。

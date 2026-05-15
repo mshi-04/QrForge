@@ -22,6 +22,29 @@ Rust core (QR generation and PNG encoding)
 
 依存方向は常に上から下に向ける。Rust core は Android UI、Kotlin、JNI の事情を知らない。Kotlin wrapper は JNI の詳細を隠蔽し、Android app は SDK wrapper のみを利用する。
 
+## ディレクトリとレイヤの対応
+
+```text
+QrForge/
+├── app/src/main/java/com/appvoyager/qrforge/
+│   ├── QrForge.kt              # SDK wrapper (public API) — Phase 4
+│   ├── QrForgeException.kt     # public 例外型 — Phase 4
+│   ├── QrOptions.kt            # public option model — Phase 4 以降
+│   ├── internal/
+│   │   └── QrForgeNative.kt    # JNI bridge (internal)
+│   └── MainActivity.kt         # Android app (sample UI)
+├── app/src/main/jniLibs/
+│   └── arm64-v8a/
+│       └── libqrforge.so       # プリビルド native library
+├── rust/
+│   ├── qrforge-core/           # Rust core (QR 生成 + PNG エンコード)
+│   │   ├── Cargo.toml          #   依存: qrcode 0.14.1, image 0.25.10
+│   │   └── src/lib.rs
+│   └── qrforge-jni/            # JNI bridge (Rust 側)
+│       ├── Cargo.toml          #   lib name: qrforge (→ libqrforge.so)
+│       └── src/lib.rs
+```
+
 ## Android app の責務
 
 Android app は QrForge を利用するサンプルまたは検証用 UI として扱う。

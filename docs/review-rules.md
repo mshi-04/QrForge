@@ -103,70 +103,35 @@ Nitpick は、本質的なレビュー結果を埋もれさせないよう最小
 
 ## 重点レビュー観点
 
-### 責務境界
+各観点の設計方針は [docs/architecture.md](architecture.md) と [docs/coding-rules.md](coding-rules.md) を正とする。ここでは「何を確認するか」を列挙する。
 
-Rust core、JNI bridge、Kotlin wrapper、Android app の責務が混ざっていないか確認する。
+### 責務境界（詳細: architecture.md「レイヤ構成」）
 
-- Rust core は QR 生成と PNG エンコードに集中しているか。
-- Rust core が Android、JNI、Kotlin、UI に依存していないか。
-- JNI bridge が型変換と境界処理だけを担当しているか。
-- Kotlin wrapper が利用者向け API と例外変換を担当しているか。
-- Android app が SDK wrapper の利用例に留まり、内部 API を呼んでいないか。
+- [ ] Rust core が Android/JNI/Kotlin に依存していないか
+- [ ] JNI bridge が型変換だけを担当し、QR 生成ロジックを持っていないか
+- [ ] Android app が SDK wrapper 以外の内部 API を呼んでいないか
 
-### Android SDK 風 API
+### Android SDK 風 API（詳細: architecture.md「Android 側に Rust/JNI の詳細を漏らさない方針」）
 
-利用者に Rust/JNI の詳細が漏れていないか確認する。
+- [ ] `QrForgeNative`、`external fun`、JNI symbol が public API や利用例に出ていないか
+- [ ] `System.loadLibrary` の扱いが利用者に露出していないか
 
-- 利用者が `QrForge.createBitmap(text)` のように目的ベースで呼べるか。
-- `QrForgeNative`、`external fun`、JNI symbol、Rust crate 名が public API や利用例に出ていないか。
-- `System.loadLibrary` の扱いが利用者に露出していないか。
-- `Bitmap` が必要な利用者と PNG `ByteArray` が必要な利用者の両方に自然な API があるか。
+### 公開 API の互換性
 
-### 公開 API の破壊的変更
+- [ ] 既存 public API の関数名・引数・戻り値・例外の意味が変わっていないか
+- [ ] 新しい設定を追加するために既存 API を壊していないか
+- [ ] public model に property を追加する場合、default 値があるか
 
-public API は互換性維持対象として見る。
+### 例外設計（詳細: api-design.md「例外設計」）
 
-- 既存 public API の関数名、引数、戻り値、例外の意味が変わっていないか。
-- 新しい設定を追加するために既存 API を壊していないか。
-- overload で拡張できるところを既存関数の意味変更で済ませていないか。
-- public model に property を追加する場合、default 値があるか。
+- [ ] 入力不正・生成失敗・PNG decode 失敗・native library load failure を区別できるか
+- [ ] `null`、空配列、汎用 `RuntimeException` で失敗を曖昧にしていないか
 
-### 例外設計
+### JNI 境界とメモリ安全性（詳細: coding-rules.md「JNI 実装時の注意点」）
 
-失敗原因が利用者に伝わるか確認する。
-
-- 入力不正、生成失敗、PNG decode 失敗、native library load failure を区別できるか。
-- `null`、空配列、汎用 `RuntimeException` で失敗を曖昧にしていないか。
-- Rust core の error が Kotlin 側で適切な例外へ変換されているか。
-- 例外 message が利用者向けに理解できる内容か。
-
-### 入力バリデーション
-
-入力仕様が docs と実装で一致しているか確認する。
-
-- 空文字、blank、長すぎる文字列、日本語など UTF-8 文字列の扱いが明確か。
-- Kotlin wrapper と Rust core の検証責務が矛盾していないか。
-- SDK 側で勝手に trim して QR 化する内容を変えていないか。
-- QR 仕様上扱えない入力で crash せず、利用者向け例外になるか。
-
-### Bitmap / ByteArray 変換
-
-Android 向け戻り値が正しく扱われているか確認する。
-
-- `createPngBytes` が PNG signature を持つ bytes を返すか。
-- `createBitmap` が decode 失敗時に `null` を返さず例外化しているか。
-- PNG bytes 生成と Bitmap decode の責務が混ざっていないか。
-- Android UI component への表示処理が SDK wrapper に入り込んでいないか。
-
-### JNI 境界とメモリ安全性
-
-JNI 境界は重点的に確認する。
-
-- Rust panic が JNI 境界から外へ漏れないか。
-- `jbyteArray` 変換、文字列変換、local reference の扱いに問題がないか。
-- Rust 側の bytes 所有権が明確か。
-- JNI で発生した例外や null を無視して処理を続けていないか。
-- 複数回呼び出しや大きな入力で reference leak や native crash が起きる可能性がないか。
+- [ ] Rust panic が JNI 境界から外へ漏れないか
+- [ ] `jbyteArray` 変換・文字列変換・local reference の扱いに問題がないか
+- [ ] 複数回呼び出しや大きな入力で reference leak や native crash が起きる可能性がないか
 
 ## レビュー結果の書き方
 
