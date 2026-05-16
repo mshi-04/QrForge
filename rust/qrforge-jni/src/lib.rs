@@ -6,7 +6,9 @@ use jni::JNIEnv;
 use qrforge_core::{generate_qr_png, QrForgeError, QrOptions};
 
 #[no_mangle]
-pub extern "system" fn Java_com_appvoyager_qrforge_internal_QrForgeNative_generateQrPng<'local>(
+pub extern "system" fn Java_com_appvoyager_qrforge_internal_QrForgeNative_nativeGenerateQrPng<
+    'local,
+>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
     text: JString<'local>,
