@@ -53,6 +53,13 @@ AI が実装する場合は、作業前に対象 Phase、変更予定ファイ�
 - 生成結果は `Result<Vec<u8>, QrForgeError>` のように成功と失敗を分ける。
 - エラー型は原因を表現し、文字列だけで流さない。
 
+### バリデーション定数の正規位置
+
+- `size`・`margin` の許容範囲とデフォルト値の正規定義は Rust core (`qrforge-core/src/lib.rs`) に置く。
+- Kotlin wrapper (`QrOptions`) のバリデーションは UX 目的の早期エラー（利用者に分かりやすいメッセージを即座に返す）として維持する。
+- JNI bridge (`options_from_jni`) の範囲チェックは、Kotlin を経由しない不正呼び出しへの防御として維持する。
+- 値を変更する場合は Rust core を起点に 3 箇所を同時に更新する。
+
 ### 画像生成
 
 - 生成する bytes は PNG として妥当であることをテストする。
@@ -176,7 +183,8 @@ Phase 4 以降で ktlint または detekt を導入する。それまでは Andr
 
 UnitTest の作成ルールは [unit-test.md](unit-test.md) を参照。具体的なコマンドは [docs/setup.md](setup.md) と [development-plan.md「Phase 横断の確認方針」](development-plan.md) を参照。
 
-- Kotlin 変更時: `./gradlew :app:assembleDebug` と `./gradlew :app:testDebugUnitTest`
+- Kotlin library 変更時: `./gradlew :qrforge:assembleDebug` と `./gradlew :qrforge:testDebugUnitTest`
+- sample app 変更時: `./gradlew :app:assembleDebug`
 - Rust 変更時: `cargo test --manifest-path rust/qrforge-core/Cargo.toml`
 - JNI 変更時: Android 側から native library load と呼び出しを確認する。
 - docs だけを変更した場合も、Git 差分でコード変更が混ざっていないことを確認する。

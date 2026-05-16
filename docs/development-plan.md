@@ -43,8 +43,8 @@ Kotlin から native method を経由して Rust core を呼び出し、PNG `Byt
 
 - `rust/qrforge-jni/Cargo.toml` ✅
 - `rust/qrforge-jni/src/lib.rs` ✅
-- `app/src/main/java/.../internal/QrForgeNative.kt` ✅
-- `app/src/main/jniLibs/arm64-v8a/libqrforge.so` ✅
+- `qrforge/src/main/java/.../internal/QrForgeNative.kt` ✅
+- `qrforge/src/main/jniLibs/arm64-v8a/libqrforge.so` ✅
 - `app/build.gradle.kts`（NDK 連携設定）
 - native library load を SDK wrapper 内部に隠蔽する Kotlin コード ✅
 
@@ -87,12 +87,12 @@ Android 利用者向けの SDK 風 API を提供し、`QrForge.createBitmap(text
 
 ### 主な作成・変更ファイル
 
-- `app/src/main/java/.../QrForge.kt` ✅
-- `app/src/main/java/.../QrForgeException.kt` ✅
-- `app/src/main/java/.../QrOptions.kt`（Phase 5 で追加）✅
-- `app/src/main/java/.../MainActivity.kt` ✅
-- `app/src/test/java/.../QrForgeTest.kt` ✅
-- `app/src/androidTest/java/.../QrForgeInstrumentedTest.kt` ✅
+- `qrforge/src/main/java/.../QrForge.kt` ✅
+- `qrforge/src/main/java/.../QrForgeException.kt` ✅
+- `qrforge/src/main/java/.../QrOptions.kt`（Phase 5 で追加）✅
+- `app/src/main/java/.../sample/MainActivity.kt` ✅
+- `qrforge/src/test/java/.../QrForgeTest.kt` ✅
+- `qrforge/src/androidTest/java/.../QrForgeInstrumentedTest.kt` ✅
 
 ### 完了条件（達成済み）
 
@@ -110,12 +110,12 @@ Android 利用者向けの SDK 風 API を提供し、`QrForge.createBitmap(text
 
 ### 主な作成・変更ファイル
 
-- `app/src/main/java/.../QrOptions.kt` ✅
-- `app/src/main/java/.../QrForge.kt` ✅
-- `app/src/main/java/.../internal/QrForgeNative.kt` ✅
+- `qrforge/src/main/java/.../QrOptions.kt` ✅
+- `qrforge/src/main/java/.../QrForge.kt` ✅
+- `qrforge/src/main/java/.../internal/QrForgeNative.kt` ✅
 - `rust/qrforge-core/src/lib.rs` ✅
 - `rust/qrforge-jni/src/lib.rs` ✅
-- `app/src/main/jniLibs/arm64-v8a/libqrforge.so` ✅
+- `qrforge/src/main/jniLibs/arm64-v8a/libqrforge.so` ✅
 
 ### 完了条件（達成済み）
 
@@ -125,11 +125,32 @@ Android 利用者向けの SDK 風 API を提供し、`QrForge.createBitmap(text
 - 入力不正は `IllegalArgumentException`、native 側失敗や PNG decode 失敗は `QrForgeException` として扱う。
 - Rust core が size / margin を受け取り、JNI bridge は型変換とエラー変換に留まる。
 
-## Phase 6: ライブラリ化と公開準備
+## Phase 6: ライブラリ化と公開準備 ✅ 完了
 
 ### ゴール
 
-QrForge を Android ライブラリとして切り出しやすい構成に整理する。既存 `:app` を sample app として残すか新規 library module を作るかは Phase 6 の計画時に決める。
+QrForge を Android ライブラリとして切り出しやすい構成に整理する。既存 `:app` は sample app として残し、公開 API と JNI binding は `:qrforge` library module に置く。
+
+### 主な作成・変更ファイル
+
+- `settings.gradle.kts` ✅
+- `build.gradle.kts` ✅
+- `gradle/libs.versions.toml` ✅
+- `qrforge/build.gradle.kts` ✅
+- `qrforge/src/main/java/.../QrForge.kt` ✅
+- `qrforge/src/main/java/.../QrOptions.kt` ✅
+- `qrforge/src/main/java/.../QrForgeException.kt` ✅
+- `qrforge/src/main/java/.../internal/QrForgeNative.kt` ✅
+- `qrforge/src/main/jniLibs/arm64-v8a/libqrforge.so` ✅
+- `app/src/main/java/.../sample/MainActivity.kt` ✅
+
+### 完了条件（達成済み）
+
+- Android library module `:qrforge` が追加されている。
+- `QrForge`, `QrOptions`, `QrForgeException` が `:qrforge` の public API として配置されている。
+- JNI binding と native library は `:qrforge` 内部に閉じている。
+- 既存 `:app` は sample app として `:qrforge` に依存している。
+- Maven Central などへの公開は行わず、公開準備の構成整理に留めている。
 
 ### やらないこと
 
@@ -141,7 +162,8 @@ QrForge を Android ライブラリとして切り出しやすい構成に整理
 
 具体的なコマンドは [docs/setup.md](docs/setup.md) を参照。
 
-- Kotlin 変更時: `./gradlew :app:assembleDebug` と `./gradlew :app:testDebugUnitTest`
+- Kotlin library 変更時: `./gradlew :qrforge:assembleDebug` と `./gradlew :qrforge:testDebugUnitTest`
+- sample app 変更時: `./gradlew :app:assembleDebug`
 - Rust 変更時: `cargo test --manifest-path rust/qrforge-core/Cargo.toml`
 - JNI 変更時: Android 側から native library load と呼び出しを確認する。
 - ドキュメント変更時はコード変更が混ざっていないことを Git 差分で確認する。
