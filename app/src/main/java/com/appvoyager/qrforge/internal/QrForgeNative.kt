@@ -1,13 +1,17 @@
 package com.appvoyager.qrforge.internal
 
 internal object QrForgeNative {
-    fun generateQrPng(text: String): ByteArray {
+    fun generateQrPng(text: String, size: Int, margin: Int): ByteArray {
         NativeLibraryLoader.load()
-        return nativeGenerateQrPng(text)
+        return nativeGenerateQrPng(text, size, margin)
     }
 
     @JvmStatic
-    private external fun nativeGenerateQrPng(text: String): ByteArray
+    private external fun nativeGenerateQrPng(
+        text: String,
+        size: Int,
+        margin: Int,
+    ): ByteArray
 
     class NativeLibraryUnavailable(
         message: String,

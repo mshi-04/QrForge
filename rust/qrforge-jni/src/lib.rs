@@ -3,7 +3,7 @@
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use jni::objects::{JClass, JString};
-use jni::sys::jbyteArray;
+use jni::sys::{jbyteArray, jint};
 use jni::JNIEnv;
 use qrforge_core::{generate_qr_png, QrForgeError, QrOptions};
 
@@ -17,6 +17,8 @@ pub extern "system" fn Java_com_appvoyager_qrforge_internal_QrForgeNative_native
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
     text: JString<'local>,
+    size: jint,
+    margin: jint,
 ) -> jbyteArray {
     let text_str: String = match env.get_string(&text) {
         Ok(s) => s.into(),
@@ -29,10 +31,15 @@ pub extern "system" fn Java_com_appvoyager_qrforge_internal_QrForgeNative_native
             return std::ptr::null_mut();
         }
     };
+    let options = match options_from_jni(size, margin) {
+        Ok(options) => options,
+        Err(message) => {
+            throw_or_fatal(&mut env, "java/lang/IllegalArgumentException", message);
+            return std::ptr::null_mut();
+        }
+    };
 
-    let result = catch_unwind(AssertUnwindSafe(|| {
-        generate_qr_png(&text_str, &QrOptions::default())
-    }));
+    let result = catch_unwind(AssertUnwindSafe(|| generate_qr_png(&text_str, &options)));
 
     match result {
         Ok(Ok(bytes)) => match env.byte_array_from_slice(&bytes) {
@@ -61,6 +68,21 @@ pub extern "system" fn Java_com_appvoyager_qrforge_internal_QrForgeNative_native
     }
 }
 
+fn options_from_jni(size: jint, margin: jint) -> Result<QrOptions, &'static str> {
+    if size < 1 || size > 4096 {
+        return Err("QR image size must be between 1 and 4096 pixels");
+    }
+
+    if margin < 0 || margin > 64 {
+        return Err("QR margin must be between 0 and 64 modules");
+    }
+
+    Ok(QrOptions {
+        size: size as u32,
+        margin: margin as u32,
+    })
+}
+
 fn throw_qr_error(env: &mut JNIEnv<'_>, error: QrForgeError) {
     match error {
         QrForgeError::BlankInput => {
@@ -69,6 +91,9 @@ fn throw_qr_error(env: &mut JNIEnv<'_>, error: QrForgeError) {
                 "java/lang/IllegalArgumentException",
                 "QR text must not be blank",
             );
+        }
+        QrForgeError::InvalidOptions(message) => {
+            throw_or_fatal(env, "java/lang/IllegalArgumentException", message);
         }
         QrForgeError::QrEncoding(e) => {
             throw_or_fatal(

@@ -4,17 +4,19 @@
 
 QrForge の Android 向け API は、Rust 製 QR 生成機能を Android SDK のように自然に使える形で提供する。利用者は JNI や Rust の存在を意識せず、Kotlin の通常 API として QR コード画像を作れることを重視する。
 
-最初の public API は最小に保ち、将来的な `QrOptions` 追加に備える。
+public API は最小に保ちつつ、`QrOptions(size, margin)` で画像サイズと余白を指定できるようにする。
 
-## 最初に提供する Android 向け API
+## Android 向け API
 
-初期 API は次の 2 つを中心にする。
+API は次の 4 つを中心にする。option なし API は `QrOptions()` を使う互換入口として扱う。
 
 ```kotlin
 object QrForge {
     fun createBitmap(text: String): Bitmap
+    fun createBitmap(text: String, options: QrOptions): Bitmap
 
     fun createPngBytes(text: String): ByteArray
+    fun createPngBytes(text: String, options: QrOptions): ByteArray
 }
 ```
 
@@ -44,28 +46,18 @@ PNG bytes を保存、共有、独自デコードしたい利用者向けの API
 
 この API は `Bitmap` に依存しないため、保存や送信にも使いやすい。
 
-## 将来的な `QrOptions`（Phase 4 以降）
+## `QrOptions`
 
-将来的には次のような option model を追加する。
+画像サイズと余白は `QrOptions` で指定する。
 
 ```kotlin
 data class QrOptions(
-    val size: Int = 512,    // 画像全体のピクセルサイズ
+    val size: Int = 512,    // 画像全体の最小ピクセルサイズ
     val margin: Int = 4,    // QR module 数単位のマージン
 )
 ```
 
-追加後の API:
-
-```kotlin
-object QrForge {
-    fun createBitmap(text: String): Bitmap
-    fun createBitmap(text: String, options: QrOptions): Bitmap
-
-    fun createPngBytes(text: String): ByteArray
-    fun createPngBytes(text: String, options: QrOptions): ByteArray
-}
-```
+`size` は `1..4096`、`margin` は `0..64` を受け付ける。範囲外は `IllegalArgumentException` を投げる。
 
 呼び出し例:
 
@@ -76,7 +68,7 @@ val bitmap = QrForge.createBitmap(
 )
 ```
 
-`QrOptions` を追加しても、option なし API の挙動は変えない。default 値は文書化し、Kotlin wrapper と Rust core の間で意味を揃える。
+option なし API の挙動は変えない。default 値は Kotlin wrapper と Rust core の間で意味を揃える。
 
 ## 呼び出し例
 
@@ -120,9 +112,7 @@ nullable 戻り値や sentinel value で失敗を表現しない。呼び出し�
 
 ## 例外設計
 
-初期方針として、利用者向けの基底例外 `QrForgeException` を用意する。
-
-候補:
+利用者向けの基底例外 `QrForgeException` を用意する。
 
 ```kotlin
 sealed class QrForgeException(
@@ -148,23 +138,22 @@ sealed class QrForgeException(
 }
 ```
 
-最終的な型構成は実装 Phase で決めるが、次の方針は守る。
+次の方針を守る。
 
-- 入力不正と生成失敗を区別する。
+- 入力不正は `IllegalArgumentException` を投げる。
+- 生成失敗は `QrForgeException.GenerationFailed` を投げる。
 - native library load failure を生成失敗に混ぜない。
 - PNG decode failure を Rust core の失敗に混ぜない。
 - `null` や空配列で失敗を表現しない。
 
 ## 入力仕様
 
-初期仕様の候補:
-
 - `text` は blank でない文字列を要求する。
 - UTF-8 文字列を扱える。
 - QR 仕様や選択ライブラリの容量を超える場合は生成失敗として扱う。
 - 前後空白を SDK 側で勝手に trim しない。入力された文字列を QR 化する。
 
-空文字を許可するかどうかは実装前に確定する。迷う場合は Android 利用者にとって誤操作になりやすい blank を拒否する方針を優先する。
+空文字・blank は `IllegalArgumentException` で拒否する。
 
 ## 非公開にすべき JNI API
 
@@ -172,7 +161,7 @@ sealed class QrForgeException(
 
 ```kotlin
 internal object QrForgeNative {
-    external fun createPngBytes(text: String): ByteArray
+    fun generateQrPng(text: String, size: Int, margin: Int): ByteArray
 }
 ```
 
@@ -196,16 +185,30 @@ Rust 側の exported JNI symbol も公開 API ではない。名前は JNI 仕�
 - 例外の大分類を変える場合は docs を更新する。
 - public model に property を追加する場合は default 値を用意する。
 
+## QrOptions の定数仕様
+
+`QrOptions` の定数は Kotlin (`QrOptions.kt`) と Rust core (`qrforge-core/src/lib.rs`) の両方に定義されている。
+**変更時は必ず両方を同時に更新すること。**
+
+| 定数 | 値 | 定義箇所 |
+|------|----|---------|
+| `DEFAULT_SIZE` | 512 | `QrOptions.kt`, `lib.rs` (`DEFAULT_IMAGE_SIZE`) |
+| `DEFAULT_MARGIN` | 4 | `QrOptions.kt`, `lib.rs` (`QrOptions::default`) |
+| `MIN_SIZE` | 1 | `QrOptions.kt`, `lib.rs` (`MIN_IMAGE_SIZE`) |
+| `MAX_SIZE` | 4096 | `QrOptions.kt`, `lib.rs` (`MAX_IMAGE_SIZE`) |
+| `MIN_MARGIN` | 0 | `QrOptions.kt`（Rust は 0 未満を拒否） |
+| `MAX_MARGIN` | 64 | `QrOptions.kt`, `lib.rs` (`MAX_MARGIN`) |
+
 ## 仕様決定済み事項
 
 以下は実装着手前に確定済み。
 
 | 項目 | 決定内容 |
 |------|---------|
-| 空文字・blank の扱い | 拒否。`QrForgeException.InvalidInput` を投げる |
+| 空文字・blank の扱い | 拒否。`IllegalArgumentException` を投げる |
 | `QrOptions.size` の意味 | 画像の最小ピクセルサイズ。モジュール境界の都合で指定値以上になる場合がある |
-| `QrOptions.margin` の単位 | QR module 数。0 で quiet zone 無効、1 以上で標準 quiet zone を有効化 |
+| `QrOptions.margin` の単位 | QR module 数。0 で quiet zone 無効、1 以上で指定 module 数の quiet zone を有効化 |
 | Rust QR 生成 crate | `qrcode 0.14.1` |
 | Rust PNG エンコード crate | `image 0.25.10`（PNG feature） |
 | native library 名 | `qrforge`（`libqrforge.so`） |
-| Android library module 切り出し | Phase 5 で対応 |
+| Android library module 切り出し | 後続 Phase で対応 |
