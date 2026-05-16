@@ -89,7 +89,7 @@ Android 利用者向けの SDK 風 API を提供し、`QrForge.createBitmap(text
 
 - `app/src/main/java/.../QrForge.kt` ✅
 - `app/src/main/java/.../QrForgeException.kt` ✅
-- `app/src/main/java/.../QrOptions.kt`（Phase 5 で追加予定）
+- `app/src/main/java/.../QrOptions.kt`（Phase 5 で追加）✅
 - `app/src/main/java/.../MainActivity.kt` ✅
 - `app/src/test/java/.../QrForgeTest.kt` ✅
 - `app/src/androidTest/java/.../QrForgeInstrumentedTest.kt` ✅
@@ -102,13 +102,34 @@ Android 利用者向けの SDK 風 API を提供し、`QrForge.createBitmap(text
 - 例外体系（`QrForgeException` sealed class）で障害原因を区別できる。
 - Unit テストと Instrumented テストで基本動作を確認済み。
 
-## Phase 5: ライブラリ化と拡張準備
-
-> Phase 4 完了後に詳細化する。
+## Phase 5: QrOptions とエラー設計 ✅ 完了
 
 ### ゴール
 
-QrForge を Android ライブラリとして切り出しやすい構成に整理し、`QrOptions` などの拡張を安全に追加できる状態にする。既存 `:app` を sample app として残すか新規 library module を作るかは Phase 5 の計画時に決める。
+既存 API の互換性を保ったまま、`QrOptions(size, margin)` で QR 画像サイズと余白を指定できる API を追加する。入力不正と native 側失敗を区別し、Android SDK として扱いやすい例外設計に整理する。
+
+### 主な作成・変更ファイル
+
+- `app/src/main/java/.../QrOptions.kt` ✅
+- `app/src/main/java/.../QrForge.kt` ✅
+- `app/src/main/java/.../internal/QrForgeNative.kt` ✅
+- `rust/qrforge-core/src/lib.rs` ✅
+- `rust/qrforge-jni/src/lib.rs` ✅
+- `app/src/main/jniLibs/arm64-v8a/libqrforge.so` ✅
+
+### 完了条件（達成済み）
+
+- `QrForge.createBitmap(text)` と `QrForge.createPngBytes(text)` の既存 API が残っている。
+- `QrForge.createBitmap(text, options)` と `QrForge.createPngBytes(text, options)` が利用可能。
+- `QrOptions.size` は `1..4096`、`QrOptions.margin` は `0..64` を受け付ける。
+- 入力不正は `IllegalArgumentException`、native 側失敗や PNG decode 失敗は `QrForgeException` として扱う。
+- Rust core が size / margin を受け取り、JNI bridge は型変換とエラー変換に留まる。
+
+## Phase 6: ライブラリ化と公開準備
+
+### ゴール
+
+QrForge を Android ライブラリとして切り出しやすい構成に整理する。既存 `:app` を sample app として残すか新規 library module を作るかは Phase 6 の計画時に決める。
 
 ### やらないこと
 
