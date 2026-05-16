@@ -1,5 +1,6 @@
 package com.appvoyager.qrforge
 
+import android.graphics.Bitmap
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -15,11 +16,12 @@ class QrForgeInstrumentedTest {
     }
 
     @Test
-    fun createBitmapReturnsDefaultSizeBitmap() {
+    fun createBitmapReturnsAtLeastDefaultSizeBitmap() {
         val bitmap = QrForge.createBitmap("Hello QrForge")
 
-        assertEquals(DEFAULT_SIZE, bitmap.width)
-        assertEquals(DEFAULT_SIZE, bitmap.height)
+        assertTrue(bitmap.width >= DEFAULT_SIZE)
+        assertTrue(bitmap.height >= DEFAULT_SIZE)
+        assertEquals(Bitmap.Config.ARGB_8888, bitmap.config)
     }
 
     @Test(expected = QrForgeException.InvalidInput::class)

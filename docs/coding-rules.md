@@ -160,7 +160,7 @@ AI が実装する場合は、作業前に対象 Phase、変更予定ファイ�
 
 ## Rust の品質設定
 
-Rust crate には以下の lint 設定を推奨する。
+Rust crate（`qrforge-core`, `qrforge-jni`）には以下の lint 設定を適用済み。
 
 ```rust
 #![deny(clippy::unwrap_used, clippy::expect_used)]

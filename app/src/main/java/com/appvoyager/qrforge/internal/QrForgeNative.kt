@@ -13,11 +13,14 @@ internal object QrForgeNative {
         message: String,
         cause: Throwable,
     ) : RuntimeException(message, cause)
+
+    class GenerationFailed(message: String) : RuntimeException(message)
 }
 
 private object NativeLibraryLoader {
     @Volatile private var isLoaded = false
 
+    @Synchronized
     fun load() {
         if (isLoaded) {
             return
