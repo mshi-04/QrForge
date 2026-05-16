@@ -10,6 +10,7 @@
 /.idea/assetWizardSettings.xml
 .DS_Store
 /build
+**/build/
 /captures
 .externalNativeBuild
 .cxx
@@ -21,9 +22,9 @@ target/
 
 # Native build outputs
 *.so
-!app/src/main/jniLibs/
-!app/src/main/jniLibs/**/
-!app/src/main/jniLibs/**/*.so
+!qrforge/src/main/jniLibs/
+!qrforge/src/main/jniLibs/**/
+!qrforge/src/main/jniLibs/**/*.so
 *.dylib
 *.dll
 *.a

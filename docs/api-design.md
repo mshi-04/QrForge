@@ -119,8 +119,6 @@ sealed class QrForgeException(
     message: String,
     cause: Throwable? = null,
 ) : RuntimeException(message, cause) {
-    class InvalidInput(message: String) : QrForgeException(message)
-
     class GenerationFailed(
         message: String,
         cause: Throwable? = null,
@@ -211,4 +209,4 @@ Rust 側の exported JNI symbol も公開 API ではない。名前は JNI 仕�
 | Rust QR 生成 crate | `qrcode 0.14.1` |
 | Rust PNG エンコード crate | `image 0.25.10`（PNG feature） |
 | native library 名 | `qrforge`（`libqrforge.so`） |
-| Android library module 切り出し | 後続 Phase で対応 |
+| Android library module 切り出し | `:qrforge` で対応済み |

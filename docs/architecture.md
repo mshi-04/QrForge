@@ -27,13 +27,15 @@ Rust core (QR generation and PNG encoding)
 ```text
 QrForge/
 ├── app/src/main/java/com/appvoyager/qrforge/
-│   ├── QrForge.kt              # SDK wrapper (public API) — Phase 4
-│   ├── QrForgeException.kt     # public 例外型 — Phase 4
-│   ├── QrOptions.kt            # public option model — Phase 4 以降
-│   ├── internal/
-│   │   └── QrForgeNative.kt    # JNI bridge (internal)
-│   └── MainActivity.kt         # Android app (sample UI)
-├── app/src/main/jniLibs/
+│   └── sample/
+│       └── MainActivity.kt     # Android app (sample UI)
+├── qrforge/src/main/java/com/appvoyager/qrforge/
+│   ├── QrForge.kt              # SDK wrapper (public API)
+│   ├── QrForgeException.kt     # public 例外型
+│   ├── QrOptions.kt            # public option model
+│   └── internal/
+│       └── QrForgeNative.kt    # JNI bridge (internal)
+├── qrforge/src/main/jniLibs/
 │   └── arm64-v8a/
 │       └── libqrforge.so       # プリビルド native library
 ├── rust/
@@ -48,7 +50,7 @@ QrForge/
 
 ## Android app の責務
 
-Android app は QrForge を利用するサンプルまたは検証用 UI として扱う。
+Android app (`:app`) は QrForge を利用するサンプルまたは検証用 UI として扱う。SDK 本体は Android library module `:qrforge` に置く。
 
 - ユーザー入力を受け取り、SDK wrapper を呼び出す。
 - 返却された `Bitmap` を `ImageView` や `AppCompatImageView` に表示する。
@@ -149,7 +151,7 @@ Android 利用者は次のような知識を要求されない設計にする。
 - 既存 overload を壊さず、新しい overload を追加する。
 - オプション未指定時のデフォルト値を SDK wrapper に定義し、Rust core にも安全な default を用意する。
 - エラー訂正レベル、色、背景色、画像形式などは一度に混ぜず、Phase を分けて追加する。
-- Android ライブラリモジュールへ切り出しやすいよう、app 固有コードと SDK wrapper を分離する。
+- Android ライブラリモジュール `:qrforge` に SDK wrapper を置き、app 固有コードと SDK wrapper を分離する。
 
 ## 守るべき設計判断
 

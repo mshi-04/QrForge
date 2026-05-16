@@ -29,22 +29,25 @@ cargo build --manifest-path rust/qrforge-jni/Cargo.toml
 ## native library のビルド（arm64-v8a）
 
 ```bash
-cargo ndk -t arm64-v8a -o app/src/main/jniLibs build --manifest-path rust/qrforge-jni/Cargo.toml
+cargo ndk -t arm64-v8a -o qrforge/src/main/jniLibs build --release --manifest-path rust/qrforge-jni/Cargo.toml
 ```
 
-ビルド後の `.so` は `app/src/main/jniLibs/arm64-v8a/libqrforge.so` に生成される。
+ビルド後の `.so` は `qrforge/src/main/jniLibs/arm64-v8a/libqrforge.so` に生成される。
 
 ## Android ビルド・テスト
 
 ```bash
-# debug ビルド
+# library debug ビルド
+./gradlew :qrforge:assembleDebug
+
+# library unit test（JVM 上）
+./gradlew :qrforge:testDebugUnitTest
+
+# sample app は :qrforge を利用する検証用アプリ
 ./gradlew :app:assembleDebug
 
-# unit test（JVM 上）
-./gradlew :app:testDebugUnitTest
-
 # instrumented test（実機またはエミュレーター必要）
-./gradlew :app:connectedDebugAndroidTest
+./gradlew :qrforge:connectedDebugAndroidTest
 ```
 
 ## 変更後の確認フロー
@@ -53,7 +56,8 @@ cargo ndk -t arm64-v8a -o app/src/main/jniLibs build --manifest-path rust/qrforg
 |---------|------------|
 | Rust core | `cargo test --manifest-path rust/qrforge-core/Cargo.toml` |
 | Rust JNI | `cargo build --manifest-path rust/qrforge-jni/Cargo.toml` + .so 再ビルド |
-| Kotlin wrapper | `./gradlew :app:assembleDebug` + `./gradlew :app:testDebugUnitTest` |
+| Kotlin wrapper | `./gradlew :qrforge:assembleDebug` + `./gradlew :qrforge:testDebugUnitTest` |
+| Sample app | `./gradlew :app:assembleDebug` |
 | docs のみ | `git diff --stat` でコード変更が混ざっていないことを確認 |
 
 ## 現在対応 ABI

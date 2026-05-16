@@ -1,11 +1,9 @@
-import org.gradle.api.tasks.testing.Test
-
 plugins {
     alias(libs.plugins.android.application)
 }
 
 android {
-    namespace = "com.appvoyager.qrforge"
+    namespace = "com.appvoyager.qrforge.sample"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -13,17 +11,13 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.appvoyager.qrforge"
+        applicationId = "com.appvoyager.qrforge.sample"
         minSdk = 28
-        targetSdk = 36
+        targetSdk { version = release(36) }
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        ndk {
-            abiFilters += "arm64-v8a"
-        }
     }
 
     buildTypes {
@@ -45,17 +39,9 @@ android {
 }
 
 dependencies {
+    implementation(project(":qrforge"))
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.core.ktx)
     implementation(libs.material)
-    testImplementation(platform(libs.junit.bom))
-    testImplementation(libs.junit.jupiter)
-    testRuntimeOnly(libs.junit.platform.launcher)
-    androidTestImplementation(libs.androidx.test.espresso.core)
-    androidTestImplementation(libs.androidx.test.ext.junit)
-}
-
-tasks.withType<Test>().configureEach {
-    useJUnitPlatform()
 }

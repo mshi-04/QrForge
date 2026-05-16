@@ -2,7 +2,7 @@
 
 QrForge は、Android/Kotlin から SDK 風に呼び出せる Rust 製 QR コード生成ライブラリ。
 
-**現在の Phase: Phase 4 完了 → Phase 5（ライブラリ化と拡張準備）待ち** — 詳細は [docs/development-plan.md](docs/development-plan.md)
+**現在の Phase: Phase 6 完了** — 詳細は [docs/development-plan.md](docs/development-plan.md)
 
 ## 基本行動
 

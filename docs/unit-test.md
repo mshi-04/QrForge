@@ -18,8 +18,8 @@ QrForge のテストは、Rust core、JNI bridge、Kotlin SDK wrapper の責務�
 | 対象 | 配置 | 役割 |
 |------|------|------|
 | Rust core | `rust/qrforge-core/tests/` | QR 生成、PNG bytes、option validation、core error を検証する |
-| Kotlin UnitTest | `app/src/test/` | JVM 上で検証できる Kotlin wrapper の入力検証、option model、例外変換前の分岐を検証する |
-| Instrumented Test | `app/src/androidTest/` | native library load、JNI 呼び出し、Bitmap decode など Android 実行環境が必要な振る舞いを検証する |
+| Kotlin UnitTest | `qrforge/src/test/` | JVM 上で検証できる Kotlin wrapper の入力検証、option model、例外変換前の分岐を検証する |
+| Instrumented Test | `qrforge/src/androidTest/` | native library load、JNI 呼び出し、Bitmap decode など Android 実行環境が必要な振る舞いを検証する |
 
 Rust core のテストで Android、JNI、Kotlin の事情を検証しない。JNI bridge のテストで QR 生成アルゴリズムの詳細を検証しない。Kotlin wrapper のテストで JNI exported symbol を直接 API として扱わない。
 
@@ -128,9 +128,10 @@ fun createBitmapReturnsAtLeastDefaultWidthBitmap() {
 ```powershell
 cargo fmt --all -- --check
 cargo test --manifest-path rust/qrforge-core/Cargo.toml
-.\gradlew.bat :app:testDebugUnitTest
-.\gradlew.bat :app:assembleDebugAndroidTest
-.\gradlew.bat :app:connectedDebugAndroidTest
+.\gradlew.bat :qrforge:testDebugUnitTest
+.\gradlew.bat :qrforge:assembleDebugAndroidTest
+.\gradlew.bat :qrforge:connectedDebugAndroidTest
+.\gradlew.bat :app:assembleDebug
 ```
 
 `connectedDebugAndroidTest` は実機またはエミュレーターが必要。実行できない場合は、理由を報告する。
