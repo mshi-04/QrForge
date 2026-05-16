@@ -33,7 +33,7 @@ Rust 単体で、文字列から QR コード PNG bytes を生成できる core 
 - core に JNI、Android、Kotlin の依存がない。
 - 使用 crate: `qrcode 0.14.1` + `image 0.25.10`（PNG feature）
 
-## Phase 3: JNI bridge の最小接続 🔄 進行中
+## Phase 3: JNI bridge の最小接続 ✅ 完了
 
 ### ゴール
 
@@ -46,7 +46,7 @@ Kotlin から native method を経由して Rust core を呼び出し、PNG `Byt
 - `app/src/main/java/.../internal/QrForgeNative.kt` ✅
 - `app/src/main/jniLibs/arm64-v8a/libqrforge.so` ✅
 - `app/build.gradle.kts`（NDK 連携設定）
-- native library load を SDK wrapper 内部に隠蔽する Kotlin コード
+- native library load を SDK wrapper 内部に隠蔽する Kotlin コード ✅
 
 ### 完了条件
 
@@ -79,9 +79,7 @@ Kotlin から native method を経由して Rust core を呼び出し、PNG `Byt
 
 ---
 
-## Phase 4: Kotlin SDK wrapper と Android 表示
-
-> Phase 3 完了後に詳細化する。
+## Phase 4: Kotlin SDK wrapper と Android 表示 🔄 進行中
 
 ### ゴール
 
@@ -91,7 +89,7 @@ Android 利用者向けの SDK 風 API を提供し、`QrForge.createBitmap(text
 
 - `app/src/main/java/.../QrForge.kt`
 - `app/src/main/java/.../QrForgeException.kt`
-- `app/src/main/java/.../QrOptions.kt`
+- `app/src/main/java/.../QrOptions.kt`（Phase 4 以降で必要になった時点で追加）
 - `app/src/main/java/.../MainActivity.kt`
 - `app/src/test/java/.../QrForgeTest.kt`
 

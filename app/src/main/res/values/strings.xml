@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">QrForge</string>
+    <string name="qr_sample_title">QR コード生成</string>
+    <string name="qr_text_hint">QR 化するテキスト</string>
+    <string name="qr_default_text">https://example.com</string>
+    <string name="generate_qr">生成</string>
+    <string name="qr_generation_success">QR コードを生成しました</string>
+    <string name="qr_image_description">生成された QR コード</string>
 </resources>
