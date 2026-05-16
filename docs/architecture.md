@@ -39,7 +39,8 @@ QrForge/
 ├── rust/
 │   ├── qrforge-core/           # Rust core (QR 生成 + PNG エンコード)
 │   │   ├── Cargo.toml          #   依存: qrcode 0.14.1, image 0.25.10
-│   │   └── src/lib.rs
+│   │   ├── src/lib.rs
+│   │   ��── tests/              #   Rust 単体テスト
 │   └── qrforge-jni/            # JNI bridge (Rust 側)
 │       ├── Cargo.toml          #   lib name: qrforge (→ libqrforge.so)
 │       └── src/lib.rs

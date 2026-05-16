@@ -37,8 +37,8 @@ fn returns_error_for_whitespace_only_text() {
 #[test]
 fn respects_custom_dimensions() {
     let options = QrOptions {
-        width: 256,
-        height: 256,
+        size: 256,
+        margin: 4,
     };
     let bytes = generate_qr_png("custom size", &options)
         .expect("text should generate PNG bytes with custom dimensions");

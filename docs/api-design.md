@@ -203,8 +203,8 @@ Rust 側の exported JNI symbol も公開 API ではない。名前は JNI 仕�
 | 項目 | 決定内容 |
 |------|---------|
 | 空文字・blank の扱い | 拒否。`QrForgeException.InvalidInput` を投げる |
-| `QrOptions.size` の意味 | 画像全体のピクセルサイズ（例: `512` → 512×512 px） |
-| `QrOptions.margin` の単位 | QR module 数 |
+| `QrOptions.size` の意味 | 画像の最小ピクセルサイズ。モジュール境界の都合で指定値以上になる場合がある |
+| `QrOptions.margin` の単位 | QR module 数。0 で quiet zone 無効、1 以上で標準 quiet zone を有効化 |
 | Rust QR 生成 crate | `qrcode 0.14.1` |
 | Rust PNG エンコード crate | `image 0.25.10`（PNG feature） |
 | native library 名 | `qrforge`（`libqrforge.so`） |

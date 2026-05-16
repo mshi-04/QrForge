@@ -79,30 +79,28 @@ Kotlin から native method を経由して Rust core を呼び出し、PNG `Byt
 
 ---
 
-## Phase 4: Kotlin SDK wrapper と Android 表示 🔄 進行中
+## Phase 4: Kotlin SDK wrapper と Android 表示 ✅ 完了
 
 ### ゴール
 
 Android 利用者向けの SDK 風 API を提供し、`QrForge.createBitmap(text)` と `QrForge.createPngBytes(text)` を使って表示できるようにする。
 
-### 主な作成・変更ファイル（候補）
+### 主な作成・変更ファイル
 
-- `app/src/main/java/.../QrForge.kt`
-- `app/src/main/java/.../QrForgeException.kt`
-- `app/src/main/java/.../QrOptions.kt`（Phase 4 以降で必要になった時点で追加）
-- `app/src/main/java/.../MainActivity.kt`
-- `app/src/test/java/.../QrForgeTest.kt`
+- `app/src/main/java/.../QrForge.kt` ✅
+- `app/src/main/java/.../QrForgeException.kt` ✅
+- `app/src/main/java/.../QrOptions.kt`（Phase 5 で追加予定）
+- `app/src/main/java/.../MainActivity.kt` ✅
+- `app/src/test/java/.../QrForgeTest.kt` ✅
+- `app/src/androidTest/java/.../QrForgeInstrumentedTest.kt` ✅
 
-### やらないこと
-
-- QR options の全機能を完成させない。
-- ライブラリ配布設定を完成させない。
-- UI を過度に作り込まない。
-
-### 次 Phase へ進む判断基準
+### 完了条件（達成済み）
 
 - Android から SDK wrapper だけを使って QR 表示できる。
 - JNI の存在が app 利用コードに漏れていない。
+- `QrForge.createBitmap(text)` と `QrForge.createPngBytes(text)` が利用可能。
+- 例外体系（`QrForgeException` sealed class）で障害原因を区別できる。
+- Unit テストと Instrumented テストで基本動作を確認済み。
 
 ## Phase 5: ライブラリ化と拡張準備
 

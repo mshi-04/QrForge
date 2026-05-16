@@ -20,7 +20,7 @@ object QrForge {
             throw QrForgeException.NativeLibraryUnavailable(error.message.orEmpty(), error)
         } catch (error: IllegalArgumentException) {
             throw QrForgeException.InvalidInput(error.message ?: "QR text is invalid", error)
-        } catch (error: RuntimeException) {
+        } catch (error: QrForgeNative.GenerationFailed) {
             throw QrForgeException.GenerationFailed(error.message ?: "QR generation failed", error)
         }
     }
