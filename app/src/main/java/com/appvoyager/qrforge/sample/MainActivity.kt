@@ -29,6 +29,9 @@ class MainActivity : AppCompatActivity() {
         try {
             binding.qrImage.setImageBitmap(QrForge.createBitmap(text))
             binding.statusText.setText(R.string.qr_generation_success)
+        } catch (error: QrForgeException.NativeLibraryUnavailable) {
+            binding.qrImage.setImageDrawable(null)
+            binding.statusText.setText(R.string.qr_native_unavailable)
         } catch (error: QrForgeException) {
             binding.qrImage.setImageDrawable(null)
             binding.statusText.text = error.message

@@ -5,7 +5,9 @@ import android.graphics.BitmapFactory
 import com.appvoyager.qrforge.internal.QrForgeNative
 
 object QrForge {
-    fun createBitmap(text: String): Bitmap = createBitmap(text, QrOptions())
+    private val DEFAULT_OPTIONS = QrOptions()
+
+    fun createBitmap(text: String): Bitmap = createBitmap(text, DEFAULT_OPTIONS)
 
     fun createBitmap(text: String, options: QrOptions): Bitmap {
         val bytes = createPngBytes(text, options)
@@ -13,7 +15,7 @@ object QrForge {
             ?: throw QrForgeException.DecodeFailed("Generated PNG could not be decoded")
     }
 
-    fun createPngBytes(text: String): ByteArray = createPngBytes(text, QrOptions())
+    fun createPngBytes(text: String): ByteArray = createPngBytes(text, DEFAULT_OPTIONS)
 
     fun createPngBytes(text: String, options: QrOptions): ByteArray {
         val validText = validateText(text)

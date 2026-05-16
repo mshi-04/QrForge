@@ -6,4 +6,5 @@
     <string name="generate_qr">生成</string>
     <string name="qr_generation_success">QR コードを生成しました</string>
     <string name="qr_image_description">生成された QR コード</string>
+    <string name="qr_native_unavailable">ネイティブライブラリの読み込みに失敗しました</string>
 </resources>

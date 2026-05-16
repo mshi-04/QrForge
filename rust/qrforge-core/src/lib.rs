@@ -10,6 +10,7 @@ use qrcode::QrCode;
 pub use error::QrForgeError;
 
 const DEFAULT_IMAGE_SIZE: u32 = 512;
+const DEFAULT_MARGIN: u32 = 4;
 const MIN_IMAGE_SIZE: u32 = 1;
 const MAX_IMAGE_SIZE: u32 = 4096;
 const MAX_MARGIN: u32 = 64;
@@ -26,7 +27,7 @@ impl Default for QrOptions {
     fn default() -> Self {
         Self {
             size: DEFAULT_IMAGE_SIZE,
-            margin: 4,
+            margin: DEFAULT_MARGIN,
         }
     }
 }
@@ -42,12 +43,8 @@ pub fn generate_qr_png(text: &str, options: &QrOptions) -> Result<Vec<u8>, QrFor
 
     let mut bytes = Vec::new();
     let (width, height) = (image.width(), image.height());
-    PngEncoder::new(&mut bytes).write_image(
-        image.into_raw().as_slice(),
-        width,
-        height,
-        image::ExtendedColorType::L8,
-    )?;
+    let raw = image.into_raw();
+    PngEncoder::new(&mut bytes).write_image(&raw, width, height, image::ExtendedColorType::L8)?;
 
     Ok(bytes)
 }
@@ -69,9 +66,10 @@ fn validate_options(options: &QrOptions) -> Result<(), QrForgeError> {
 }
 
 fn render_qr_image(code: &QrCode, options: &QrOptions) -> ImageBuffer<Luma<u8>, Vec<u8>> {
+    // QR version 40 (max) の幅は 177 modules — u32 に確実に収まる
     let qr_width = code.width() as u32;
     let total_modules = qr_width + options.margin * 2;
-    let module_size = (options.size + total_modules - 1) / total_modules;
+    let module_size = options.size.div_ceil(total_modules);
     let image_size = total_modules * module_size;
     let mut image = ImageBuffer::from_pixel(image_size, image_size, Luma([255]));
 

@@ -24,6 +24,7 @@ QrForge は、Android/Kotlin から SDK 風に呼び出せる Rust 製 QR コー
 | [docs/api-design.md](docs/api-design.md) | 公開 API・例外・呼び出し例 |
 | [docs/setup.md](docs/setup.md) | ビルド・テスト実行手順 |
 | [docs/review-rules.md](docs/review-rules.md) | レビュー指摘分類・フォーマット |
+| [docs/sub-agent-guidelines.md](docs/sub-agent-guidelines.md) | サブエージェント運用ガイドライン |
 | [docs/git-rules.md](docs/git-rules.md) | コミット・ブランチ・PR ルール |
 
 詳細な判断は `docs/` 配下の文書を優先する。
