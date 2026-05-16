@@ -57,8 +57,8 @@ AI が実装する場合は、作業前に対象 Phase、変更予定ファイ�
 
 - `size`・`margin` の許容範囲とデフォルト値の正規定義は Rust core (`qrforge-core/src/lib.rs`) に置く。
 - Kotlin wrapper (`QrOptions`) のバリデーションは UX 目的の早期エラー（利用者に分かりやすいメッセージを即座に返す）として維持する。
-- JNI bridge (`options_from_jni`) の範囲チェックは、Kotlin を経由しない不正呼び出しへの防御として維持する。
-- 値を変更する場合は Rust core を起点に 3 箇所を同時に更新する。
+- JNI bridge (`options_from_jni`) は `jint` → `u32` への型変換安全性（負数拒否）のみを担当する。範囲の妥当性検証は Rust core に委譲する。
+- 値を変更する場合は Rust core を起点に Kotlin `QrOptions` と合わせて 2 箇所を同時に更新する。
 
 ### 画像生成
 

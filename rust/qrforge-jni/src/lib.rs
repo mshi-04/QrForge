@@ -20,6 +20,8 @@ pub extern "system" fn Java_com_appvoyager_qrforge_internal_QrForgeNative_native
     size: jint,
     margin: jint,
 ) -> jbyteArray {
+    // JavaStr からの借用ゼロコピーも可能だが、後段の env 可変借用と競合するため
+    // 所有権を持つ String に変換する。入力サイズは小さく性能影響は無視できる。
     let text_str: String = match env.get_string(&text) {
         Ok(s) => s.into(),
         Err(e) => {
@@ -57,11 +59,16 @@ pub extern "system" fn Java_com_appvoyager_qrforge_internal_QrForgeNative_native
             throw_qr_error(&mut env, error);
             std::ptr::null_mut()
         }
-        Err(_) => {
+        Err(panic_info) => {
+            let detail = panic_info
+                .downcast_ref::<&str>()
+                .map(|s| s.to_string())
+                .or_else(|| panic_info.downcast_ref::<String>().cloned())
+                .unwrap_or_else(|| "unknown cause".to_string());
             throw_or_fatal(
                 &mut env,
                 GENERATION_FAILED_CLASS,
-                "QR generation failed because native code panicked",
+                &format!("QR generation panicked: {detail}"),
             );
             std::ptr::null_mut()
         }
@@ -69,12 +76,14 @@ pub extern "system" fn Java_com_appvoyager_qrforge_internal_QrForgeNative_native
 }
 
 fn options_from_jni(size: jint, margin: jint) -> Result<QrOptions, &'static str> {
-    if size < 1 || size > 4096 {
-        return Err("QR image size must be between 1 and 4096 pixels");
+    // JNI 境界では u32 への変換安全性のみを保証する。
+    // 値域の妥当性は qrforge_core::validate_options が一元的に検証する。
+    if size < 0 {
+        return Err("QR image size must not be negative");
     }
 
-    if margin < 0 || margin > 64 {
-        return Err("QR margin must be between 0 and 64 modules");
+    if margin < 0 {
+        return Err("QR margin must not be negative");
     }
 
     Ok(QrOptions {
