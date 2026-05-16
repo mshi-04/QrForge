@@ -20,6 +20,7 @@ QrForge は、Android/Kotlin から SDK 風に呼び出せる Rust 製 QR コー
 | [docs/architecture.md](docs/architecture.md) | レイヤ構成・責務・依存方向 |
 | [docs/development-plan.md](docs/development-plan.md) | Phase 計画・完了条件 |
 | [docs/coding-rules.md](docs/coding-rules.md) | Kotlin・Rust・JNI の実装ルール |
+| [docs/unit-test.md](docs/unit-test.md) | UnitTest・Instrumented Test の作成ルール |
 | [docs/api-design.md](docs/api-design.md) | 公開 API・例外・呼び出し例 |
 | [docs/setup.md](docs/setup.md) | ビルド・テスト実行手順 |
 | [docs/review-rules.md](docs/review-rules.md) | レビュー指摘分類・フォーマット |

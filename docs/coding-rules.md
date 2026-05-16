@@ -174,7 +174,7 @@ Phase 4 以降で ktlint または detekt を導入する。それまでは Andr
 
 ## 変更後の確認
 
-具体的なコマンドは [docs/setup.md](setup.md) と [development-plan.md「Phase 横断の確認方針」](development-plan.md) を参照。
+UnitTest の作成ルールは [unit-test.md](unit-test.md) を参照。具体的なコマンドは [docs/setup.md](setup.md) と [development-plan.md「Phase 横断の確認方針」](development-plan.md) を参照。
 
 - Kotlin 変更時: `./gradlew :app:assembleDebug` と `./gradlew :app:testDebugUnitTest`
 - Rust 変更時: `cargo test --manifest-path rust/qrforge-core/Cargo.toml`

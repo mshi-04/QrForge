@@ -1,47 +1,117 @@
 package com.appvoyager.qrforge.internal
 
 import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class QrForgeNativeInstrumentedTest {
     @Test
-    fun generateQrPngReturnsPngBytes() {
+    fun generateQrPngReturnsNonEmptyBytes() {
+        // Arrange
+        val text = "Hello QrForge"
+
+        // Act
         val bytes = QrForgeNative.generateQrPng(
-            text = "Hello QrForge",
+            text = text,
             size = DEFAULT_SIZE,
             margin = DEFAULT_MARGIN,
         )
 
+        // Assert
         assertTrue(bytes.isNotEmpty())
+    }
+
+    @Test
+    fun generateQrPngReturnsPngHeader() {
+        // Arrange
+        val text = "Hello QrForge"
+
+        // Act
+        val bytes = QrForgeNative.generateQrPng(
+            text = text,
+            size = DEFAULT_SIZE,
+            margin = DEFAULT_MARGIN,
+        )
+
+        // Assert
         assertArrayEquals(PNG_HEADER, bytes.copyOf(PNG_HEADER.size))
     }
 
     @Test
-    fun generateQrPngReturnsPngBytesWithOptions() {
+    fun generateQrPngWithOptionsReturnsNonEmptyBytes() {
+        // Arrange
+        val text = "Hello options"
+
+        // Act
         val bytes = QrForgeNative.generateQrPng(
-            text = "Hello options",
+            text = text,
             size = CUSTOM_SIZE,
             margin = CUSTOM_MARGIN,
         )
 
+        // Assert
         assertTrue(bytes.isNotEmpty())
+    }
+
+    @Test
+    fun generateQrPngWithOptionsReturnsPngHeader() {
+        // Arrange
+        val text = "Hello options"
+
+        // Act
+        val bytes = QrForgeNative.generateQrPng(
+            text = text,
+            size = CUSTOM_SIZE,
+            margin = CUSTOM_MARGIN,
+        )
+
+        // Assert
         assertArrayEquals(PNG_HEADER, bytes.copyOf(PNG_HEADER.size))
     }
 
-    @Test(expected = IllegalArgumentException::class)
+    @Test
     fun generateQrPngThrowsOnEmptyText() {
-        QrForgeNative.generateQrPng("", DEFAULT_SIZE, DEFAULT_MARGIN)
+        // Arrange
+        val text = ""
+
+        // Act & Assert
+        assertThrows(IllegalArgumentException::class.java) {
+            QrForgeNative.generateQrPng(text, DEFAULT_SIZE, DEFAULT_MARGIN)
+        }
     }
 
-    @Test(expected = IllegalArgumentException::class)
+    @Test
     fun generateQrPngThrowsOnBlankText() {
-        QrForgeNative.generateQrPng("   ", DEFAULT_SIZE, DEFAULT_MARGIN)
+        // Arrange
+        val text = "   "
+
+        // Act & Assert
+        assertThrows(IllegalArgumentException::class.java) {
+            QrForgeNative.generateQrPng(text, DEFAULT_SIZE, DEFAULT_MARGIN)
+        }
     }
 
-    @Test(expected = IllegalArgumentException::class)
+    @Test
     fun generateQrPngThrowsOnInvalidSize() {
-        QrForgeNative.generateQrPng("invalid size", 0, DEFAULT_MARGIN)
+        // Arrange
+        val size = 0
+
+        // Act & Assert
+        assertThrows(IllegalArgumentException::class.java) {
+            QrForgeNative.generateQrPng("invalid size", size, DEFAULT_MARGIN)
+        }
+    }
+
+    @Test
+    fun generateQrPngThrowsOnInvalidMargin() {
+        // Arrange
+        val margin = 65
+
+        // Act & Assert
+        assertThrows(IllegalArgumentException::class.java) {
+            QrForgeNative.generateQrPng("invalid margin", DEFAULT_SIZE, margin)
+        }
     }
 
     private companion object {
