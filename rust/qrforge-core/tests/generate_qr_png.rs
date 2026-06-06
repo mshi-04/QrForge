@@ -29,6 +29,30 @@ fn returns_png_bytes_for_url_text() {
 }
 
 #[test]
+fn returns_square_png_image() {
+    // Arrange
+    let options = QrOptions::default();
+
+    // Act
+    let bytes = generate_qr_png("square image", &options).expect("text should generate PNG bytes");
+
+    // Assert
+    assert_eq!(png_width(&bytes), png_height(&bytes));
+}
+
+#[test]
+fn default_options_return_at_least_default_size() {
+    // Arrange
+    let options = QrOptions::default();
+
+    // Act
+    let bytes = generate_qr_png("default size", &options).expect("text should generate PNG bytes");
+
+    // Assert
+    assert!(png_width(&bytes) >= 512);
+}
+
+#[test]
 fn returns_error_for_empty_text() {
     // Arrange
     let text = "";
@@ -111,6 +135,22 @@ fn applies_max_margin_to_png_output() {
 }
 
 #[test]
+fn accepts_max_size_and_max_margin() {
+    // Arrange
+    let options = QrOptions {
+        size: 4096,
+        margin: 64,
+    };
+
+    // Act
+    let bytes = generate_qr_png("max options", &options)
+        .expect("text should generate PNG bytes with max options");
+
+    // Assert
+    assert!(bytes.starts_with(PNG_HEADER));
+}
+
+#[test]
 fn applies_custom_margin_to_output_width() {
     // Arrange
     let without_margin = generate_qr_png("custom margin", &QrOptions { size: 1, margin: 0 })
@@ -185,6 +225,47 @@ fn returns_error_for_invalid_size_regardless_of_margin() {
     assert!(matches!(error, QrForgeError::InvalidOptions(_)));
 }
 
+#[test]
+fn returns_qr_encoding_error_for_oversized_text() {
+    // Arrange
+    let text = "a".repeat(10_000);
+    let options = QrOptions::default();
+
+    // Act
+    let error = generate_qr_png(&text, &options).expect_err("oversized text should be rejected");
+
+    // Assert
+    assert!(matches!(error, QrForgeError::QrEncoding(_)));
+}
+
+#[test]
+fn blank_input_display_message_is_stable() {
+    // Arrange
+    let error = QrForgeError::BlankInput;
+
+    // Act
+    let message = error.to_string();
+
+    // Assert
+    assert_eq!(message, "QR text must not be blank");
+}
+
+#[test]
+fn invalid_options_display_uses_validation_message() {
+    // Arrange
+    let error = QrForgeError::InvalidOptions("custom validation message");
+
+    // Act
+    let message = error.to_string();
+
+    // Assert
+    assert_eq!(message, "custom validation message");
+}
+
 fn png_width(bytes: &[u8]) -> u32 {
     u32::from_be_bytes([bytes[16], bytes[17], bytes[18], bytes[19]])
+}
+
+fn png_height(bytes: &[u8]) -> u32 {
+    u32::from_be_bytes([bytes[20], bytes[21], bytes[22], bytes[23]])
 }

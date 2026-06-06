@@ -47,7 +47,7 @@ fun qrOptionsUsesDefaultSize() {
 
 ```powershell
 cargo fmt --all -- --check
-cargo test --manifest-path rust/qrforge-core/Cargo.toml
+cargo test --workspace --all-targets
 .\gradlew.bat :qrforge:testDebugUnitTest
 .\gradlew.bat :qrforge:assembleDebugAndroidTest
 .\gradlew.bat :qrforge:connectedDebugAndroidTest
