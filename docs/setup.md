@@ -23,7 +23,7 @@ rustup target add x86_64-linux-android
 
 ```powershell
 cargo fmt --all -- --check
-cargo test --manifest-path rust/qrforge-core/Cargo.toml
+cargo test --workspace --all-targets
 cargo build --manifest-path rust/qrforge-jni/Cargo.toml
 ```
 
@@ -57,7 +57,7 @@ qrforge/src/main/jniLibs/x86_64/libqrforge.so
 
 | 変更箇所 | 実行コマンド |
 |---------|------------|
-| Rust core | `cargo fmt --all -- --check`、`cargo test --manifest-path rust/qrforge-core/Cargo.toml` |
+| Rust core | `cargo fmt --all -- --check`、`cargo test --workspace --all-targets` |
 | Rust JNI | `cargo build --manifest-path rust/qrforge-jni/Cargo.toml`、必要なら `.so` 再ビルド |
 | Kotlin wrapper | `.\gradlew.bat :qrforge:assembleDebug`、`.\gradlew.bat :qrforge:testDebugUnitTest` |
 | Instrumented test | `.\gradlew.bat :qrforge:assembleDebugAndroidTest`、可能なら `.\gradlew.bat :qrforge:connectedDebugAndroidTest` |

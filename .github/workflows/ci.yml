@@ -42,8 +42,8 @@ jobs:
       - name: Check Rust format
         run: cargo fmt --all -- --check
 
-      - name: Test Rust core
-        run: cargo test --manifest-path rust/qrforge-core/Cargo.toml
+      - name: Test Rust workspace
+        run: cargo test --workspace --all-targets
 
       - name: Build Rust JNI crate
         run: cargo build --manifest-path rust/qrforge-jni/Cargo.toml
