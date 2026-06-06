@@ -7,13 +7,15 @@
 | Android Studio | 最新安定版 | |
 | Android NDK | r27 以降 | SDK Manager でインストール |
 | Rust toolchain | stable | `rustup` で管理 |
-| Rust ターゲット | `aarch64-linux-android` | `rustup target add aarch64-linux-android` |
+| Rust ターゲット | `aarch64-linux-android`, `armv7-linux-androideabi`, `x86_64-linux-android` | 対応 ABI 分を `rustup target add` で追加 |
 | cargo-ndk | 最新版 | `cargo install cargo-ndk` |
 
 ## Rust ターゲット追加
 
 ```bash
 rustup target add aarch64-linux-android
+rustup target add armv7-linux-androideabi
+rustup target add x86_64-linux-android
 ```
 
 ## Rust テスト
@@ -26,13 +28,21 @@ cargo test --manifest-path rust/qrforge-core/Cargo.toml
 cargo build --manifest-path rust/qrforge-jni/Cargo.toml
 ```
 
-## native library のビルド（arm64-v8a）
+## native library のビルド
 
 ```bash
-cargo ndk -t arm64-v8a -o qrforge/src/main/jniLibs build --release --manifest-path rust/qrforge-jni/Cargo.toml
+cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o qrforge/src/main/jniLibs build --release --manifest-path rust/qrforge-jni/Cargo.toml
 ```
 
-ビルド後の `.so` は `qrforge/src/main/jniLibs/arm64-v8a/libqrforge.so` に生成される。
+ビルド後の `.so` は次の場所に生成される。
+
+```text
+qrforge/src/main/jniLibs/arm64-v8a/libqrforge.so
+qrforge/src/main/jniLibs/armeabi-v7a/libqrforge.so
+qrforge/src/main/jniLibs/x86_64/libqrforge.so
+```
+
+`x86` は 32-bit x86 emulator が必要な場合のみ追加する。対応する場合は `rustup target add i686-linux-android` を実行し、`cargo ndk` に `-t x86` を加える。
 
 ## Android ビルド・テスト
 
@@ -62,6 +72,8 @@ cargo ndk -t arm64-v8a -o qrforge/src/main/jniLibs build --release --manifest-pa
 
 ## 現在対応 ABI
 
-- `arm64-v8a`（実機・エミュレーター arm64）
+- `arm64-v8a`（64-bit ARM 実機、arm64 エミュレーター）
+- `armeabi-v7a`（32-bit ARM 実機）
+- `x86_64`（64-bit x86 エミュレーター）
 
-x86_64（エミュレーター）対応は Phase 4 以降で追加する。追加時は `rustup target add x86_64-linux-android` が必要。
+`x86` は既定の対応 ABI には含めない。32-bit x86 emulator が必要になった場合だけ `i686-linux-android` target と `x86` ABI を追加する。
