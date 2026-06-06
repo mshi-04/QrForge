@@ -59,6 +59,8 @@ data class QrOptions(
 
 `size` は `1..4096`、`margin` は `0..64` を受け付ける。範囲外は `IllegalArgumentException` を投げる。
 
+**メモリに関する注意:** `size` を大きくすると生成される画像のピクセル数が増加し、`createBitmap` が割り当てる `Bitmap` のメモリ使用量も増加する。`size = 4096` の場合、ARGB_8888 Bitmap で最大約 70 MB に達する可能性があるため、デバイスのメモリ制約を考慮して適切な値を選ぶこと。一般的な表示用途では `512`（デフォルト）〜 `1024` で十分である。
+
 呼び出し例:
 
 ```kotlin
@@ -119,8 +121,6 @@ sealed class QrForgeException(
     message: String,
     cause: Throwable? = null,
 ) : RuntimeException(message, cause) {
-    class InvalidInput(message: String) : QrForgeException(message)
-
     class GenerationFailed(
         message: String,
         cause: Throwable? = null,
@@ -174,7 +174,7 @@ Rust 側の exported JNI symbol も公開 API ではない。名前は JNI 仕�
 `QrForge` は `object`（シングルトン）として定義するが、内部状態は持たない設計にする。
 
 - 同期 API として提供し、呼び出し側が必要に応じてスレッド制御する。
-- 非同期 API（`suspend fun` 等）は Phase 4 以降、必要性が確認されてから追加する。
+- 非同期 API（`suspend fun` 等）は、必要性が確認されてから追加する。
 - `QrForge` の関数は副作用を持たず、同一引数で同一結果を返す前提にする。
 
 ## API 互換性の考え方
@@ -193,7 +193,7 @@ Rust 側の exported JNI symbol も公開 API ではない。名前は JNI 仕�
 | 定数 | 値 | 定義箇所 |
 |------|----|---------|
 | `DEFAULT_SIZE` | 512 | `QrOptions.kt`, `lib.rs` (`DEFAULT_IMAGE_SIZE`) |
-| `DEFAULT_MARGIN` | 4 | `QrOptions.kt`, `lib.rs` (`QrOptions::default`) |
+| `DEFAULT_MARGIN` | 4 | `QrOptions.kt`, `lib.rs` (`DEFAULT_MARGIN`) |
 | `MIN_SIZE` | 1 | `QrOptions.kt`, `lib.rs` (`MIN_IMAGE_SIZE`) |
 | `MAX_SIZE` | 4096 | `QrOptions.kt`, `lib.rs` (`MAX_IMAGE_SIZE`) |
 | `MIN_MARGIN` | 0 | `QrOptions.kt`（Rust は 0 未満を拒否） |
@@ -211,4 +211,4 @@ Rust 側の exported JNI symbol も公開 API ではない。名前は JNI 仕�
 | Rust QR 生成 crate | `qrcode 0.14.1` |
 | Rust PNG エンコード crate | `image 0.25.10`（PNG feature） |
 | native library 名 | `qrforge`（`libqrforge.so`） |
-| Android library module 切り出し | 後続 Phase で対応 |
+| Android library module 切り出し | `:qrforge` で対応済み |

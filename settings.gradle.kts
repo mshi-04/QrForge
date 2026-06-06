@@ -24,3 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "QrForge"
 include(":app")
+include(":qrforge")

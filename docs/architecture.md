@@ -2,9 +2,9 @@
 
 ## 目的
 
-QrForge は、Android アプリから Kotlin API として自然に呼び出せる Rust 製 QR コード生成ライブラリを目指す。利用者は Rust、JNI、NDK の詳細を意識せず、`QrForge.createBitmap(text)` または `QrForge.createPngBytes(text)` を呼ぶだけで QR コード画像を得られる状態をゴールにする。
+QrForge は、Android アプリから Kotlin API として自然に呼び出せる Rust 製 QR コード生成ライブラリである。利用者は Rust、JNI、NDK の詳細を意識せず、`QrForge.createBitmap(text)` または `QrForge.createPngBytes(text)` を呼ぶだけで QR コード画像を得られる。
 
-最初の対象は、文字列を QR コード PNG 画像データに変換し、Android 側で `Bitmap` として表示できる最小機能である。将来的には `QrOptions(size, margin)` のようなオプション指定、エラー訂正レベル、色指定、複数画像形式への拡張を追加できる構成にする。
+現在は文字列を QR コード PNG 画像データに変換し、Android 側で `Bitmap` として表示できる。`QrOptions(size, margin)` によるサイズと余白の指定にも対応している。エラー訂正レベル、色指定、複数画像形式への拡張はまだ提供していない。
 
 ## レイヤ構成
 
@@ -27,20 +27,22 @@ Rust core (QR generation and PNG encoding)
 ```text
 QrForge/
 ├── app/src/main/java/com/appvoyager/qrforge/
-│   ├── QrForge.kt              # SDK wrapper (public API) — Phase 4
-│   ├── QrForgeException.kt     # public 例外型 — Phase 4
-│   ├── QrOptions.kt            # public option model — Phase 4 以降
-│   ├── internal/
-│   │   └── QrForgeNative.kt    # JNI bridge (internal)
-│   └── MainActivity.kt         # Android app (sample UI)
-├── app/src/main/jniLibs/
+│   └── sample/
+│       └── MainActivity.kt     # Android app (sample UI)
+├── qrforge/src/main/java/com/appvoyager/qrforge/
+│   ├── QrForge.kt              # SDK wrapper (public API)
+│   ├── QrForgeException.kt     # public 例外型
+│   ├── QrOptions.kt            # public option model
+│   └── internal/
+│       └── QrForgeNative.kt    # JNI bridge (internal)
+├── qrforge/src/main/jniLibs/
 │   └── arm64-v8a/
 │       └── libqrforge.so       # プリビルド native library
 ├── rust/
 │   ├── qrforge-core/           # Rust core (QR 生成 + PNG エンコード)
 │   │   ├── Cargo.toml          #   依存: qrcode 0.14.1, image 0.25.10
 │   │   ├── src/lib.rs
-│   │   ��── tests/              #   Rust 単体テスト
+│   │   └── tests/              #   Rust 単体テスト
 │   └── qrforge-jni/            # JNI bridge (Rust 側)
 │       ├── Cargo.toml          #   lib name: qrforge (→ libqrforge.so)
 │       └── src/lib.rs
@@ -48,7 +50,7 @@ QrForge/
 
 ## Android app の責務
 
-Android app は QrForge を利用するサンプルまたは検証用 UI として扱う。
+Android app (`:app`) は QrForge を利用するサンプルまたは検証用 UI として扱う。SDK 本体は Android library module `:qrforge` に置く。
 
 - ユーザー入力を受け取り、SDK wrapper を呼び出す。
 - 返却された `Bitmap` を `ImageView` や `AppCompatImageView` に表示する。
@@ -63,7 +65,7 @@ SDK wrapper は Android 利用者に公開する Kotlin API である。
 
 - `QrForge.createBitmap(text: String): Bitmap`
 - `QrForge.createPngBytes(text: String): ByteArray`
-- 将来的な `QrOptions` 付き overload
+- `QrOptions` 付き overload
 - 入力値の基本検証
 - JNI bridge の呼び出し
 - PNG bytes から `Bitmap` への変換
@@ -89,7 +91,7 @@ Rust core は QR コード生成と PNG エンコードの純粋な中核であ�
 
 - 入力文字列を QR コードに変換する。
 - QR コードを PNG bytes にエンコードする。
-- 将来的な size、margin、error correction などのオプションを受け取れる構造を持つ。
+- size、margin などの options を受け取れる構造を持つ。
 - Android、JNI、Kotlin、UI に依存しない。
 - Rust 単体テストで検証できる API を持つ。
 
@@ -141,15 +143,15 @@ Android 利用者は次のような知識を要求されない設計にする。
 
 これらは SDK wrapper 内で隠蔽する。Android app には `QrForge.createBitmap(text)` のような目的ベースの API だけを見せる。
 
-## 将来的な拡張方針
+## 拡張方針
 
-将来拡張は Kotlin public API、JNI bridge、Rust core の順に責務を確認してから進める。
+拡張は Kotlin public API、JNI bridge、Rust core の順に責務を確認してから進める。
 
 - `QrOptions(size, margin)` を追加する場合、Kotlin model と Rust core option model の対応を明確にする。
 - 既存 overload を壊さず、新しい overload を追加する。
 - オプション未指定時のデフォルト値を SDK wrapper に定義し、Rust core にも安全な default を用意する。
-- エラー訂正レベル、色、背景色、画像形式などは一度に混ぜず、Phase を分けて追加する。
-- Android ライブラリモジュールへ切り出しやすいよう、app 固有コードと SDK wrapper を分離する。
+- エラー訂正レベル、色、背景色、画像形式などは一度に混ぜず、変更単位を分けて追加する。
+- Android ライブラリモジュール `:qrforge` に SDK wrapper を置き、app 固有コードと SDK wrapper を分離する。
 
 ## 守るべき設計判断
 

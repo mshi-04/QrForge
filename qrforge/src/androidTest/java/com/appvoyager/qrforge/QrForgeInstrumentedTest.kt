@@ -165,6 +165,53 @@ class QrForgeInstrumentedTest {
         }
     }
 
+    @Test
+    fun createPngBytesThrowsGenerationFailedOnDataTooLarge() {
+        // Arrange: QR 容量上限を超える入力
+        val oversizedText = "A".repeat(3000)
+
+        // Act & Assert
+        assertThrows(QrForgeException.GenerationFailed::class.java) {
+            QrForge.createPngBytes(oversizedText)
+        }
+    }
+
+    @Test
+    fun createPngBytesHandlesJapaneseText() {
+        // Arrange
+        val text = "日本語テスト"
+
+        // Act
+        val bytes = QrForge.createPngBytes(text)
+
+        // Assert
+        assertArrayEquals(PNG_HEADER, bytes.copyOf(PNG_HEADER.size))
+    }
+
+    @Test
+    fun createBitmapHandlesEmojiText() {
+        // Arrange
+        val text = "QrForge 🚀🌟"
+
+        // Act
+        val bitmap = QrForge.createBitmap(text)
+
+        // Assert
+        assertTrue(bitmap.width >= QrOptions.DEFAULT_SIZE)
+    }
+
+    @Test
+    fun createPngBytesHandlesNearCapacityInput() {
+        // Arrange: QR Version 40 byte mode (ECC-L) 容量上限付近
+        val nearLimitText = "A".repeat(2900)
+
+        // Act
+        val bytes = QrForge.createPngBytes(nearLimitText)
+
+        // Assert
+        assertArrayEquals(PNG_HEADER, bytes.copyOf(PNG_HEADER.size))
+    }
+
     private companion object {
         private const val CUSTOM_SIZE = 768
         private const val CUSTOM_MARGIN = 6
