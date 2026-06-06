@@ -1,0 +1,4 @@
+interface:
+  display_name: "QrForge Review"
+  short_description: "QrForge レビュー観点"
+  default_prompt: "Use $qrforge-review to review a QrForge change with project-specific severity and layer-boundary checks."

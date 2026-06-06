@@ -19,6 +19,16 @@ QrForge は、Android/Kotlin から SDK 風に呼び出せる Rust 製 QR コー
 - `System.loadLibrary("qrforge")` は internal 実装に閉じ、ABI 追加のために公開 API や sample app から直接 JNI を扱わせない。
 - `.so` を再生成した場合は、対象 ABI のディレクトリと AAR / APK への同梱結果を確認し、実行していない端末検証は未実施として報告する。
 
+## Codex skill
+
+用途別の Codex skill は `.agents/skills/` 配下に置く。
+
+| Skill | 用途 |
+|------|------|
+| [.agents/skills/qrforge-coding/SKILL.md](.agents/skills/qrforge-coding/SKILL.md) | 実装・修正作業 |
+| [.agents/skills/qrforge-unit-test/SKILL.md](.agents/skills/qrforge-unit-test/SKILL.md) | UnitTest 作成・修正 |
+| [.agents/skills/qrforge-review/SKILL.md](.agents/skills/qrforge-review/SKILL.md) | コードレビュー |
+
 ## 参照文書
 
 | 文書 | 内容 |
