@@ -1,0 +1,4 @@
+interface:
+  display_name: "QrForge UnitTest"
+  short_description: "QrForge テスト作成の手順"
+  default_prompt: "Use $qrforge-unit-test to add or update QrForge tests with the correct test layer and checks."
