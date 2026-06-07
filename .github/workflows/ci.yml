@@ -59,6 +59,9 @@ jobs:
           export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/27.2.12479018"
           cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o qrforge/src/main/jniLibs build --release --manifest-path rust/qrforge-jni/Cargo.toml
 
+      - name: Check native libraries are up to date
+        run: git diff --exit-code -- qrforge/src/main/jniLibs
+
   android:
     name: Android
     runs-on: ubuntu-latest
@@ -81,4 +84,4 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Run Android checks
-        run: ./gradlew :qrforge:testDebugUnitTest :qrforge:assembleDebug :app:assembleDebug --no-daemon
+        run: ./gradlew :qrforge:testDebugUnitTest :qrforge:assembleDebug :qrforge:assembleDebugAndroidTest :app:assembleDebug --no-daemon
