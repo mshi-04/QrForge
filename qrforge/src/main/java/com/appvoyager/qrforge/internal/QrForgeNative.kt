@@ -1,9 +1,17 @@
 package com.appvoyager.qrforge.internal
 
 internal object QrForgeNative {
+    @JvmSynthetic
     fun generateQrPng(text: String, size: Int, margin: Int): ByteArray {
         NativeLibraryLoader.load()
-        return nativeGenerateQrPng(text, size, margin)
+        return try {
+            nativeGenerateQrPng(text, size, margin)
+        } catch (error: UnsatisfiedLinkError) {
+            throw NativeLibraryUnavailable(
+                message = "QrForge native entry point is unavailable",
+                cause = error,
+            )
+        }
     }
 
     @JvmStatic

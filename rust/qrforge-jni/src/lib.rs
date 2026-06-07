@@ -47,7 +47,7 @@ pub extern "system" fn Java_com_appvoyager_qrforge_internal_QrForgeNative_native
         Ok(Ok(bytes)) => match env.byte_array_from_slice(&bytes) {
             Ok(arr) => arr.into_raw(),
             Err(e) => {
-                throw_or_fatal(
+                throw_unless_exception_pending(
                     &mut env,
                     GENERATION_FAILED_CLASS,
                     &format!("failed to create JNI byte array: {e}"),
@@ -125,4 +125,12 @@ fn throw_or_fatal(env: &mut JNIEnv<'_>, class: &str, message: &str) {
     if env.throw_new(class, message).is_err() {
         env.fatal_error(message);
     }
+}
+
+fn throw_unless_exception_pending(env: &mut JNIEnv<'_>, class: &str, message: &str) {
+    if matches!(env.exception_check(), Ok(true)) {
+        return;
+    }
+
+    throw_or_fatal(env, class, message);
 }
