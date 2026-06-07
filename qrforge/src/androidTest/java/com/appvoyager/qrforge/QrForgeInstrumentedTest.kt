@@ -167,8 +167,8 @@ class QrForgeInstrumentedTest {
 
     @Test
     fun createPngBytesThrowsGenerationFailedOnDataTooLarge() {
-        // Arrange: QR 容量上限を超える入力
-        val oversizedText = "A".repeat(3000)
+        // Arrange: QR capacity must reject clearly oversized input.
+        val oversizedText = "A".repeat(10_000)
 
         // Act & Assert
         assertThrows(QrForgeException.GenerationFailed::class.java) {

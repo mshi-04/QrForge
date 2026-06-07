@@ -116,8 +116,8 @@ class QrForgeNativeInstrumentedTest {
 
     @Test
     fun generateQrPngThrowsGenerationFailedOnDataTooLarge() {
-        // Arrange: QR version 40 byte mode の容量上限（約 2953 bytes）を超える入力
-        val oversizedText = "A".repeat(3000)
+        // Arrange: QR capacity must reject clearly oversized input.
+        val oversizedText = "A".repeat(10_000)
 
         // Act & Assert
         assertThrows(QrForgeNative.GenerationFailed::class.java) {
