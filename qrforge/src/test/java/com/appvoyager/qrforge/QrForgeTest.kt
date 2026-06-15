@@ -96,6 +96,33 @@ class QrForgeTest {
     }
 
     @Test
+    fun ensureWithinBitmapBudgetThrowsWhenOverBudget() {
+        // Arrange: MAX_BITMAP_BYTES を 1 ピクセル超える正方形寸法
+        val side = Math.sqrt((QrForge.MAX_BITMAP_BYTES / 4L + 1L).toDouble()).toInt() + 1
+
+        // Act & Assert
+        assertThrows(QrForgeException.DecodeFailed::class.java) {
+            QrForge.ensureWithinBitmapBudget(side, side)
+        }
+    }
+
+    @Test
+    fun ensureWithinBitmapBudgetAcceptsMaxSizeOutput() {
+        // Arrange: QrOptions.MAX_SIZE から生成され得る最大寸法に相当する大きさ
+        val side = 4400
+
+        // Act & Assert: 例外なく通過する
+        QrForge.ensureWithinBitmapBudget(side, side)
+    }
+
+    @Test
+    fun ensureWithinBitmapBudgetIgnoresNonPositiveDimensions() {
+        // Act & Assert: 寸法不明 (0 / 負) は後続デコードに委ねるため通過する
+        QrForge.ensureWithinBitmapBudget(0, 0)
+        QrForge.ensureWithinBitmapBudget(-1, 512)
+    }
+
+    @Test
     fun qrOptionsRejectsZeroSize() {
         // Arrange
         val size = 0

@@ -62,7 +62,7 @@ val bitmap = QrForge.createBitmap(
 | blank text / options 範囲外 | `IllegalArgumentException` |
 | native library がロードできない | `QrForgeException.NativeLibraryUnavailable` |
 | QR 生成に失敗 | `QrForgeException.GenerationFailed` |
-| PNG decode に失敗 | `QrForgeException.DecodeFailed` |
+| PNG decode に失敗 / Bitmap 確保がメモリ上限超過・OOM | `QrForgeException.DecodeFailed` |
 
 ## 対応 ABI
 
