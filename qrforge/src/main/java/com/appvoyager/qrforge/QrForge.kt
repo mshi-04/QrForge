@@ -46,10 +46,12 @@ object QrForge {
             return
         }
 
-        val byteCount = width.toLong() * height.toLong() * BITMAP_BYTES_PER_PIXEL
-        if (byteCount > MAX_BITMAP_BYTES) {
+        // width * height * 4 の乗算前に除算で比較し、Long オーバーフローを回避する。
+        // (width.toLong() * height.toLong() は Int 同士の積なので Long 内に必ず収まる)
+        val maxPixels = MAX_BITMAP_BYTES / BITMAP_BYTES_PER_PIXEL
+        if (width.toLong() * height.toLong() > maxPixels) {
             throw QrForgeException.DecodeFailed(
-                "Generated QR image (${width}x$height, $byteCount bytes) exceeds the maximum " +
+                "Generated QR image (${width}x$height) exceeds the maximum " +
                     "bitmap budget of $MAX_BITMAP_BYTES bytes",
             )
         }
