@@ -29,7 +29,7 @@ data class QrOptions(
 | `size` | `1..4096` | 画像全体の最小ピクセルサイズ |
 | `margin` | `0..64` | QR module 数単位の quiet zone |
 
-範囲外は `IllegalArgumentException`。`size` が大きいほど `Bitmap` メモリ使用量も増える。
+範囲外は `IllegalArgumentException`。`size` が大きいほど `Bitmap` メモリ使用量も増える。`createBitmap` はデコード後の確保メモリに上限を設け、超過時や `OutOfMemoryError` 発生時は `QrForgeException.DecodeFailed` として明示的に失敗する。
 
 ## 戻り値
 
@@ -44,7 +44,7 @@ data class QrOptions(
 | blank text / options 範囲外 | `IllegalArgumentException` |
 | native library load failure | `QrForgeException.NativeLibraryUnavailable` |
 | QR 生成失敗 | `QrForgeException.GenerationFailed` |
-| PNG decode 失敗 | `QrForgeException.DecodeFailed` |
+| PNG decode 失敗 / Bitmap 確保がメモリ上限超過・OOM | `QrForgeException.DecodeFailed` |
 
 native library load failure、生成失敗、decode 失敗は混ぜない。
 
