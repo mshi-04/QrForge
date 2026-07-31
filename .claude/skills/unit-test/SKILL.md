@@ -34,8 +34,10 @@ description: >
 
 ## 実行前に確認すること
 
-- 直前に `rust/` を変更しているなら、instrumented test を実行する前に `.so` を再ビルドする。
-  していないと変更前の native library を検証することになる（`docs/setup.md`）。
+- 直前に `rust/` を変更しているなら、ローカルの instrumented test を実行する前に `.so` を
+  再ビルドする。していないと変更前の native library を検証することになる（`docs/setup.md`）。
+- CI の instrumented job は repository にコミット済みの `x86_64` `.so` を検証し、Rust source の
+  3 ABI build は別の `rust` job が担う。両結果を同じ成果物の検証として扱わない。
 - `connectedDebugAndroidTest` は実機かエミュレーターが要る。無ければ未実施として報告する。
 - 特定のテストクラスだけ回す場合のコマンド形式は `docs/setup.md` にある。
 

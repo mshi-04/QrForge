@@ -21,10 +21,24 @@ data class QrOptions(
     val margin: Int = 4,
 )
 
-sealed class QrForgeException : RuntimeException {
-    class GenerationFailed : QrForgeException
-    class DecodeFailed : QrForgeException
-    class NativeLibraryUnavailable : QrForgeException
+sealed class QrForgeException(
+    message: String,
+    cause: Throwable? = null,
+) : RuntimeException(message, cause) {
+    class GenerationFailed(
+        message: String,
+        cause: Throwable? = null,
+    ) : QrForgeException(message, cause)
+
+    class DecodeFailed(
+        message: String,
+        cause: Throwable? = null,
+    ) : QrForgeException(message, cause)
+
+    class NativeLibraryUnavailable(
+        message: String,
+        cause: Throwable? = null,
+    ) : QrForgeException(message, cause)
 }
 ```
 
@@ -70,7 +84,7 @@ module_size = ceil(size / (qr_width + margin * 2))
 たとえば `size = 512`、margin 4、21 module の QR なら出力は 522x522 になる。テストでは
 `>= size` を検証し、等値を期待しない。
 
-`size = 4096`、`margin = 64` のとき出力は最大およそ 4270x4270 になる。`createBitmap` は
+`size = 4096`、`margin = 64` のとき出力は最大 4368x4368 になる。`createBitmap` は
 `ARGB_8888` で 1 ピクセル 4 バイトなので、この上限付近ではおよそ 73MiB を確保する。
 
 ### 失敗を戻り値で表現しない

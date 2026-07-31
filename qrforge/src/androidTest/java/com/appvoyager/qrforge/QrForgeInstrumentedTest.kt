@@ -12,18 +12,6 @@ import org.junit.Test
 
 class QrForgeInstrumentedTest {
     @Test
-    fun createPngBytesReturnsNonEmptyBytes() {
-        // Arrange
-        val text = "Hello QrForge"
-
-        // Act
-        val bytes = QrForge.createPngBytes(text)
-
-        // Assert
-        assertTrue(bytes.isNotEmpty())
-    }
-
-    @Test
     fun createPngBytesReturnsPngHeader() {
         // Arrange
         val text = "Hello QrForge"
@@ -69,21 +57,6 @@ class QrForgeInstrumentedTest {
 
         // Assert
         assertEquals(Bitmap.Config.ARGB_8888, bitmap.config)
-    }
-
-    @Test
-    fun createPngBytesWithOptionsReturnsNonEmptyBytes() {
-        // Arrange
-        val options = QrOptions(size = CUSTOM_SIZE, margin = CUSTOM_MARGIN)
-
-        // Act
-        val bytes = QrForge.createPngBytes(
-            text = "Hello options",
-            options = options,
-        )
-
-        // Assert
-        assertTrue(bytes.isNotEmpty())
     }
 
     @Test
@@ -147,28 +120,6 @@ class QrForgeInstrumentedTest {
     }
 
     @Test
-    fun createPngBytesThrowsIllegalArgumentForBlankText() {
-        // Arrange
-        val text = "   "
-
-        // Act & Assert
-        assertThrows(IllegalArgumentException::class.java) {
-            QrForge.createPngBytes(text)
-        }
-    }
-
-    @Test
-    fun createBitmapThrowsIllegalArgumentForBlankText() {
-        // Arrange
-        val text = ""
-
-        // Act & Assert
-        assertThrows(IllegalArgumentException::class.java) {
-            QrForge.createBitmap(text)
-        }
-    }
-
-    @Test
     fun createPngBytesThrowsGenerationFailedOnDataTooLarge() {
         // Arrange: QR capacity must reject clearly oversized input.
         val oversizedText = "A".repeat(10_000)
@@ -215,15 +166,4 @@ class QrForgeInstrumentedTest {
         assertTrue(bitmap.width >= QrOptions.DEFAULT_SIZE)
     }
 
-    @Test
-    fun createPngBytesHandlesNearCapacityInput() {
-        // Arrange: QR Version 40 byte mode (ECC-L) 容量上限付近
-        val nearLimitText = "A".repeat(2900)
-
-        // Act
-        val bytes = QrForge.createPngBytes(nearLimitText)
-
-        // Assert
-        assertArrayEquals(PNG_HEADER, bytes.copyOf(PNG_HEADER.size))
-    }
 }

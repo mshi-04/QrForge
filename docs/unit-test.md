@@ -31,8 +31,8 @@
 
 最後の項目が最も踏みやすい。JVM UnitTest では `.so` を解決できないため、「入力が受理されたら
 `NativeLibraryUnavailable` になる」ことを利用して正常系を書けてしまう。これは native library が
-ロードできる状況になった瞬間に落ちる。入力が受理されることを確かめたいなら入力検証そのものを
-直接テストし（`QrForge.requireNonBlankText`）、native 経路は Instrumented Test に任せる。
+ロードできる状況になった瞬間に落ちる。入力が受理され、そのまま下位層へ渡ることを確かめたいなら、
+注入可能な test seam で wrapper 境界を直接テストし、実際の native 経路は Instrumented Test に任せる。
 
 ## 書き方
 
@@ -60,9 +60,11 @@ fun qrOptionsUsesDefaultSize() {
 
 ### Rust core test
 
-`rust/qrforge-core/tests/` は integration test なので、crate 本体の `[dependencies]` を参照できない。
-生成 PNG のピクセルを検証するなど追加の crate が要る場合は、`[dev-dependencies]` に本体と同じ
-version・features で追加する。
+`rust/qrforge-core/tests/` の integration test は別 crate としてコンパイルされるが、package の
+`[dependencies]` と `[dev-dependencies]` の両方を利用できる。production code でも使う crate を
+`[dev-dependencies]` に重複定義しない。テストだけで使う crate や feature が必要な場合に限り、
+`[dev-dependencies]` へ追加する。現在の `image` crate は、production code が `png` crate で
+encode した結果を integration test で decode するためだけに置いている。
 
 描画位置や塗り潰し範囲のように、PNG ヘッダと寸法だけでは検出できない性質はここで検証する。
 Instrumented Test では担保しにくい。
@@ -77,8 +79,10 @@ native library に依存しない範囲に限る。テストのためだけに `
 共通定数は `qrforge/src/androidTest/java/com/appvoyager/qrforge/QrForgeTestFixtures.kt` に置く。
 assert は置かない。
 
-実行する前に、直前の `rust/` 変更に対して `.so` を再ビルドしたか確認する。していなければ検証
-対象は変更前の native library になる（[setup.md](setup.md)）。
+ローカルで実行する前に、直前の `rust/` 変更に対して `.so` を再ビルドしたか確認する。していなければ
+検証対象は変更前の native library になる。CI の instrumented job は意図的に repository に
+コミット済みの `x86_64` `.so` を使うため、Rust source のビルド確認は別の `rust` job が担う
+（[setup.md](setup.md)）。
 
 ## 報告
 

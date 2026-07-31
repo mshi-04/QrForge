@@ -11,11 +11,9 @@ object QrForge {
     private const val BITMAP_BYTES_PER_PIXEL = 4
 
     // デコード後 Bitmap の確保メモリ上限。QrOptions.MAX_SIZE から生成され得る最大寸法
-    // (約 4400x4400 ≒ 77MiB) に余裕を持たせた値。これを超える確保は捕捉不能な
+    // (最大 4368x4368 ≒ 73MiB) に余裕を持たせた値。これを超える確保は捕捉不能な
     // OutOfMemoryError になる前に QrForgeException で明示的に失敗させる。
-    //
-    // テストから検証するため internal に置いている。public API ではない。
-    internal const val MAX_BITMAP_BYTES = 128L * 1024 * 1024
+    private const val MAX_BITMAP_BYTES = 128L * 1024 * 1024
 
     @JvmOverloads
     fun createBitmap(text: String, options: QrOptions = DEFAULT_OPTIONS): Bitmap {
@@ -35,11 +33,21 @@ object QrForge {
     }
 
     @JvmOverloads
-    fun createPngBytes(text: String, options: QrOptions = DEFAULT_OPTIONS): ByteArray {
-        requireNonBlankText(text)
+    fun createPngBytes(text: String, options: QrOptions = DEFAULT_OPTIONS): ByteArray =
+        createPngBytes(text, options, QrForgeNative::generateQrPng)
+
+    // native 実装を使わず wrapper 境界を JVM UnitTest から検証するため internal に置いている。
+    // Java 利用者向けの public API ではない。
+    @JvmSynthetic
+    internal fun createPngBytes(
+        text: String,
+        options: QrOptions,
+        generateQrPng: (String, Int, Int) -> ByteArray,
+    ): ByteArray {
+        require(text.isNotBlank()) { "QR text must not be blank" }
 
         return try {
-            QrForgeNative.generateQrPng(text, options.size, options.margin)
+            generateQrPng(text, options.size, options.margin)
         } catch (error: QrForgeNative.NativeLibraryUnavailable) {
             throw QrForgeException.NativeLibraryUnavailable(
                 error.message ?: "QrForge native library is unavailable",
@@ -57,7 +65,9 @@ object QrForge {
         ensureWithinBitmapBudget(bounds.outWidth, bounds.outHeight)
     }
 
-    // テストから検証するため internal に置いている。public API ではない。
+    // BitmapFactory を使わない予算判定を JVM UnitTest から検証するため internal に置いている。
+    // Java 利用者向けの public API ではない。
+    @JvmSynthetic
     internal fun ensureWithinBitmapBudget(width: Int, height: Int) {
         if (width <= 0 || height <= 0) {
             // 寸法を取得できなかった場合は後続の実デコードにエラー処理を委ねる。
@@ -65,7 +75,7 @@ object QrForge {
         }
 
         // width * height * 4 の乗算前に除算で比較し、Long オーバーフローを回避する。
-        // (width.toLong() * height.toLong() は Int 同士の積なので Long 内に必ず収まる)
+        // width と height は正の Int なので、Long へ変換した積は Long の範囲内に収まる。
         val maxPixels = MAX_BITMAP_BYTES / BITMAP_BYTES_PER_PIXEL
         if (width.toLong() * height.toLong() > maxPixels) {
             throw QrForgeException.DecodeFailed(
@@ -73,10 +83,5 @@ object QrForge {
                     "bitmap budget of $MAX_BITMAP_BYTES bytes",
             )
         }
-    }
-
-    // テストから検証するため internal に置いている。public API ではない。
-    internal fun requireNonBlankText(text: String) {
-        require(text.isNotBlank()) { "QR text must not be blank" }
     }
 }

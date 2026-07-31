@@ -6,26 +6,9 @@ import com.appvoyager.qrforge.QrForgeTestFixtures.PNG_HEADER
 import com.appvoyager.qrforge.QrOptions
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertThrows
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class QrForgeNativeInstrumentedTest {
-    @Test
-    fun generateQrPngReturnsNonEmptyBytes() {
-        // Arrange
-        val text = "Hello QrForge"
-
-        // Act
-        val bytes = QrForgeNative.generateQrPng(
-            text = text,
-            size = VALID_SIZE,
-            margin = VALID_MARGIN,
-        )
-
-        // Assert
-        assertTrue(bytes.isNotEmpty())
-    }
-
     @Test
     fun generateQrPngReturnsPngHeader() {
         // Arrange
@@ -40,22 +23,6 @@ class QrForgeNativeInstrumentedTest {
 
         // Assert
         assertArrayEquals(PNG_HEADER, bytes.copyOf(PNG_HEADER.size))
-    }
-
-    @Test
-    fun generateQrPngWithOptionsReturnsNonEmptyBytes() {
-        // Arrange
-        val text = "Hello options"
-
-        // Act
-        val bytes = QrForgeNative.generateQrPng(
-            text = text,
-            size = CUSTOM_SIZE,
-            margin = CUSTOM_MARGIN,
-        )
-
-        // Assert
-        assertTrue(bytes.isNotEmpty())
     }
 
     @Test

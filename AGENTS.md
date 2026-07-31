@@ -19,8 +19,12 @@ QrForge は、Android/Kotlin から SDK 風に呼び出せる Rust 製 QR コー
 ## Skill
 
 用途別の skill を、Codex 用は `.agents/skills/`、Claude Code 用は `.claude/skills/` に置く。
+`.agents/skills/` を正典とし、Claude Code 用の本文は `python scripts/sync_skills.py --sync` で同期する。
 名前と用途は両者で対応しており、本文は同一に保つ。判断の実体は `docs/` 配下にあり、skill は
 手順・判断の入口・報告の型だけを持つ。
+
+文書リンク、skill 本文、ABI 設定の整合性は `python scripts/check_repo_consistency.py` で確認する。
+これらの script には Python 3.10 以降を使い、実行名が `python3` の環境では読み替える。
 
 | Skill | 用途 | Codex | Claude Code |
 |------|------|-------|-------------|
@@ -43,6 +47,5 @@ QrForge は、Android/Kotlin から SDK 風に呼び出せる Rust 製 QR コー
 | [docs/unit-test.md](docs/unit-test.md) | テストの置き場所、境界、書き方 |
 | [docs/setup.md](docs/setup.md) | ビルド・確認コマンド、`.so` の鮮度、CI との対応 |
 | [docs/review-rules.md](docs/review-rules.md) | 指摘分類、見る順序、検証の妥当性、出力フォーマット |
-| [docs/git-rules.md](docs/git-rules.md) | ブランチ、コミット、PR、バイナリ差分の扱い |
 
 詳細な判断は `docs/` 配下の文書を優先する。

@@ -20,10 +20,14 @@
 - テストのためだけに `internal` にする場合は、その旨をコメントで明示する。
   意図せず公開範囲を広げたのか、テスト都合なのかを読み手が区別できるようにする。
 
+Java 利用者向け API に漏らさないため、テスト用の `internal` 関数には `@JvmSynthetic` も付ける。
+
 ```kotlin
-// テストから検証するため internal に置いている。public API ではない。
-internal fun requireNonBlankText(text: String) {
-    require(text.isNotBlank()) { "QR text must not be blank" }
+// BitmapFactory を使わない予算判定を JVM UnitTest から検証するため internal に置いている。
+// Java 利用者向けの public API ではない。
+@JvmSynthetic
+internal fun ensureWithinBitmapBudget(width: Int, height: Int) {
+    // ...
 }
 ```
 
@@ -76,8 +80,8 @@ crate 先頭で `unwrap` と `expect` を禁止している。
 
 - Android・JNI・Kotlin の型や概念を持ち込まない。この crate は `cargo test` だけで検証できる状態を保つ。
 - 依存 crate の feature は必要最小限にする。使っていない feature は削る。
-  例: `qrcode` の `image` feature は `render::image` 用で、本 crate は自前で `ImageBuffer` を
-  組むため不要。有効にすると `image` が default features 込みで引き込まれる。
+  例: `qrcode` の `image` feature は `render::image` 用で、本 crate は `Vec<u8>` へ直接描画し、
+  `png` crate で encode するため不要。有効にすると使わない renderer と依存が増える。
 
 ### 値域と文言
 
@@ -93,14 +97,13 @@ return Err(QrForgeError::InvalidOptions(format!(
 
 ### 画素操作
 
-ピクセル単位の `put_pixel` ループを書かない。`Luma<u8>` は 1 ピクセル 1 バイトなので、
-raw buffer の行スライスをまとめて `fill` する。最大構成では 1 千万回規模の差になる。
+ピクセル単位の書き込みループを書かない。L8 は 1 ピクセル 1 バイトなので、`Vec<u8>` の
+行スライスをまとめて `fill` する。最大構成では 1 千万回規模の差になる。
 
 ```rust
-let raw: &mut [u8] = image;
 for y in start_y..start_y + module_size {
     let row_start = y * image_width + start_x;
-    raw[row_start..row_start + module_size].fill(0);
+    pixels[row_start..row_start + module_size].fill(0);
 }
 ```
 
@@ -114,7 +117,7 @@ Rust の panic を Java 側へ unwind させない。core の呼び出しは `ca
 panic を捕まえたら Java 例外に変換する。
 
 ```rust
-let result = catch_unwind(AssertUnwindSafe(|| generate_qr_png(&text_str, &options)));
+let result = catch_unwind(|| generate_qr_png(&text_str, &options));
 ```
 
 ### 例外送出の規約
@@ -140,6 +143,10 @@ fn throw_or_fatal(env: &mut JNIEnv<'_>, class: &str, message: &str) {
 - `jint` → `u32` は負値を拒否してから変換する。ここで保証するのは変換の安全性だけで、
   値域の妥当性は core の `validate_options` に任せる。二重に値域チェックを書かない。
 - Java 例外クラス名は定数にする。文字列を各所に散らさない。
+
+```rust
+const ILLEGAL_ARGUMENT_EXCEPTION_CLASS: &str = "java/lang/IllegalArgumentException";
+```
 
 ## sample app
 

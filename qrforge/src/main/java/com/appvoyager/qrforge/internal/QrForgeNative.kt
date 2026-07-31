@@ -1,12 +1,37 @@
 package com.appvoyager.qrforge.internal
 
 internal object QrForgeNative {
-    @JvmSynthetic
-    fun generateQrPng(text: String, size: Int, margin: Int): ByteArray {
-        NativeLibraryLoader.load()
+    private const val NATIVE_LIBRARY_UNAVAILABLE_MESSAGE =
+        "QrForge native library is unavailable"
+    private const val NATIVE_ENTRY_POINT_UNAVAILABLE_MESSAGE =
+        "QrForge native entry point is unavailable"
 
-        return mapLinkError("QrForge native entry point is unavailable") {
-            nativeGenerateQrPng(text, size, margin)
+    @JvmSynthetic
+    fun generateQrPng(text: String, size: Int, margin: Int): ByteArray =
+        generateQrPng(
+            text = text,
+            size = size,
+            margin = margin,
+            loadLibrary = NativeLibraryLoader::load,
+            invokeNative = ::nativeGenerateQrPng,
+        )
+
+    // load と entry point 解決の失敗を ambient な native 環境に依存せず検証するため internal に置く。
+    // Java 利用者向けの public API ではない。
+    @JvmSynthetic
+    internal fun generateQrPng(
+        text: String,
+        size: Int,
+        margin: Int,
+        loadLibrary: () -> Unit,
+        invokeNative: (String, Int, Int) -> ByteArray,
+    ): ByteArray {
+        mapLinkError(NATIVE_LIBRARY_UNAVAILABLE_MESSAGE) {
+            loadLibrary()
+        }
+
+        return mapLinkError(NATIVE_ENTRY_POINT_UNAVAILABLE_MESSAGE) {
+            invokeNative(text, size, margin)
         }
     }
 
@@ -35,9 +60,7 @@ internal object QrForgeNative {
                 return
             }
 
-            mapLinkError("QrForge native library is unavailable") {
-                System.loadLibrary("qrforge")
-            }
+            System.loadLibrary("qrforge")
             isLoaded = true
         }
     }

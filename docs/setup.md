@@ -6,11 +6,12 @@
 
 | ツール | 条件 | 備考 |
 |--------|------|------|
-| Android Studio | 最新安定版 | `compileSdk 36` / `minSdk 28` をビルドできること |
-| JDK | 17 | Gradle・CI ともに 17 |
+| Android Studio | 最新安定版 | `compileSdk 36.1` / `minSdk 28` をビルドできること |
+| JDK | 17 | Gradle build daemon・CI は Adoptium 17 を使用する |
 | Android NDK | r27 以降 | `ANDROID_NDK_HOME` / `ANDROID_NDK_ROOT` を設定する |
 | Rust toolchain | stable | `rustfmt`・`clippy` component 込み |
 | cargo-ndk | 任意 | `cargo install cargo-ndk` |
+| Python | 3.10 以降 | repository 整合性 checker と skill 同期に使用 |
 
 Rust target を追加する。
 
@@ -71,6 +72,10 @@ git diff --stat qrforge/src/main/jniLibs
 
 - 再ビルドしていない場合は、Android 側のテストが緑でも「native 側は未検証」として報告する。
 
+CI の `rust` job は現在の source から 3 ABI を一時出力へビルドし、`instrumented` job は repository に
+コミット済みの `x86_64` `.so` を使う。両方が通っても、source とコミット済み `.so` の一致は
+証明されない。Rust 変更時はローカルで 3 ABI を再生成し、コミット対象の差分を確認する。
+
 ## Android の検証コマンド
 
 ```powershell
@@ -114,14 +119,32 @@ git diff --stat qrforge/src/main/jniLibs
 | ABI 追加・削除 | `.so` 再ビルド、`abiFilters`、README・本文書・CI をまとめて更新 |
 | docs のみ | `git diff --stat` でコード変更が混ざっていないことを確認 |
 
+## repository の整合性確認
+
+`.agents/skills/` が skill 本文の正典。更新後は Claude Code 用の copy を同期し、repository 全体の
+整合性を確認する。
+
+```powershell
+python scripts/sync_skills.py --sync
+python scripts/check_repo_consistency.py
+```
+
+この文書では Python 3 の実行名を `python` と表記する。環境で `python3` として導入されている
+場合は読み替える（CI は `python3` を使用する）。
+
+整合性確認は Markdown の相対リンク、Codex / Claude Code の skill 本文、`abiFilters` と
+`qrforge/src/main/jniLibs/` の ABI directory を検証する。CI でも同じ checker を実行する。
+
 ## CI ジョブとローカルコマンドの対応
 
 workflow は `.github/workflows/ci.yml`。ローカルで先に潰しておくべき対応は次のとおり。
 
 | CI job | ローカルで相当するコマンド |
 |--------|--------------------------|
+| `consistency` | `python scripts/check_repo_consistency.py` |
 | `rust` | `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets -- -D warnings`、`cargo test --workspace --all-targets`、`cargo build --manifest-path rust/qrforge-jni/Cargo.toml`、`cargo ndk`（3 ABI の `.so` 生成確認まで） |
 | `android` | `.\gradlew.bat :qrforge:testDebugUnitTest :qrforge:assembleDebug :qrforge:assembleDebugAndroidTest :app:assembleDebug` |
-| `instrumented` | `.so` 再ビルド後の `.\gradlew.bat :qrforge:connectedDebugAndroidTest`（CI は API 34・`x86_64` emulator） |
+| `instrumented` | repository にコミット済みの `x86_64` `.so` を使う `.\gradlew.bat :qrforge:connectedDebugAndroidTest`（CI は API 34 emulator） |
 
-`instrumented` job は CI 側で `.so` を再ビルドしてから実行する。コミット済みの `.so` が古いままでも CI は通り得るので、ローカルでの再ビルドと差分確認を省略しない。
+`rust` job と `instrumented` job は別の成果物を検証する。コミット済みの `.so` が古いままでも
+両方が通り得るため、ローカルでの再ビルドと差分確認を省略しない。

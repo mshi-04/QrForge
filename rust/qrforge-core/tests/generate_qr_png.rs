@@ -3,6 +3,8 @@ use qrforge_core::{generate_qr_png, QrForgeError, QrOptions};
 const PNG_HEADER: &[u8; 8] = b"\x89PNG\r\n\x1a\n";
 const DARK: u8 = 0;
 const LIGHT: u8 = 255;
+const VERSION_40_MODULE_WIDTH: u32 = 177;
+const VERSION_40_BYTE_CAPACITY_AT_ECC_M: usize = 2_331;
 
 #[test]
 fn returns_png_bytes_for_regular_text() {
@@ -52,6 +54,21 @@ fn default_options_return_at_least_default_size() {
 
     // Assert
     assert!(png_width(&bytes) >= 512);
+}
+
+#[test]
+fn accepts_version_40_byte_capacity_at_ecc_m() {
+    // Arrange: QrCode::new の既定は ECC-M。小文字は alphanumeric mode に入らないため、
+    // 2,331 bytes が Version 40 の byte mode 容量上限になる。
+    let text = "a".repeat(VERSION_40_BYTE_CAPACITY_AT_ECC_M);
+    let options = QrOptions { size: 1, margin: 0 };
+
+    // Act
+    let bytes = generate_qr_png(&text, &options)
+        .expect("Version 40 byte capacity should generate PNG bytes at ECC-M");
+
+    // Assert
+    assert_eq!(png_width(&bytes), VERSION_40_MODULE_WIDTH);
 }
 
 #[test]
@@ -210,6 +227,8 @@ fn offsets_modules_by_margin() {
 
 #[test]
 fn fills_whole_module_area_when_module_size_is_larger_than_one() {
+    const MODULE_SIZE: u32 = 3;
+
     // Arrange: size=1, margin=0 の出力幅は QR module 数と一致するので、その 3 倍を指定すると
     // 1 module = 3x3 pixel になる
     let qr_width = png_width(
@@ -217,7 +236,7 @@ fn fills_whole_module_area_when_module_size_is_larger_than_one() {
             .expect("text should generate PNG bytes"),
     );
     let options = QrOptions {
-        size: qr_width * 3,
+        size: qr_width * MODULE_SIZE,
         margin: 0,
     };
 
@@ -227,7 +246,7 @@ fn fills_whole_module_area_when_module_size_is_larger_than_one() {
     );
 
     // Assert: 左上 module の 3x3 全域が塗られている
-    assert_eq!(image.get_pixel(2, 2)[0], DARK);
+    assert!((0..MODULE_SIZE).all(|y| (0..MODULE_SIZE).all(|x| image.get_pixel(x, y)[0] == DARK)));
 }
 
 #[test]
@@ -330,13 +349,14 @@ fn returns_error_for_invalid_size_regardless_of_margin() {
 }
 
 #[test]
-fn returns_qr_encoding_error_for_oversized_text() {
-    // Arrange
-    let text = "a".repeat(10_000);
+fn returns_qr_encoding_error_above_version_40_byte_capacity_at_ecc_m() {
+    // Arrange: byte mode の Version 40 / ECC-M 上限を 1 byte 超える
+    let text = "a".repeat(VERSION_40_BYTE_CAPACITY_AT_ECC_M + 1);
     let options = QrOptions::default();
 
     // Act
-    let error = generate_qr_png(&text, &options).expect_err("oversized text should be rejected");
+    let error = generate_qr_png(&text, &options)
+        .expect_err("text above the Version 40 byte capacity should be rejected at ECC-M");
 
     // Assert
     assert!(matches!(error, QrForgeError::QrEncoding(_)));

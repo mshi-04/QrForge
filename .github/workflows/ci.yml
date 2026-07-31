@@ -20,6 +20,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  consistency:
+    name: Repository Consistency
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Check repository consistency
+        run: python3 scripts/check_repo_consistency.py
+
   rust:
     name: Rust
     runs-on: ubuntu-latest
@@ -113,22 +125,8 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
-
-      - name: Install Android NDK
-        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;27.2.12479018"
-
-      - name: Install cargo-ndk
-        run: cargo install cargo-ndk --locked
-
-      - name: Build native libraries
-        run: |
-          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/27.2.12479018"
-          export ANDROID_NDK_ROOT="$ANDROID_NDK_HOME"
-          cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o qrforge/src/main/jniLibs build --release --manifest-path rust/qrforge-jni/Cargo.toml
+      - name: Check committed x86_64 native library
+        run: test -f qrforge/src/main/jniLibs/x86_64/libqrforge.so
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6

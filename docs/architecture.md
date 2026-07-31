@@ -38,7 +38,7 @@ app (sample)
 ```text
 QrForge.createBitmap
 ├─ QrForge.createPngBytes
-│  ├─ requireNonBlankText            Kotlin wrapper : blank を IllegalArgumentException で拒否
+│  ├─ require(text.isNotBlank())      Kotlin wrapper : blank を IllegalArgumentException で拒否
 │  └─ QrForgeNative.generateQrPng    Kotlin binding : library load と UnsatisfiedLinkError 変換
 │     └─ nativeGenerateQrPng         JNI bridge
 │        ├─ env.get_string           JString → String
@@ -48,8 +48,8 @@ QrForge.createBitmap
 │        │     ├─ blank 判定
 │        │     ├─ validate_options   値域検証
 │        │     ├─ QrCode::new        QR エンコード
-│        │     ├─ render_qr_image    ImageBuffer<Luma<u8>> へ描画
-│        │     └─ PngEncoder         PNG bytes
+│        │     ├─ render_qr_image    RenderedQrImage（side_length + Vec<u8>）へ描画
+│        │     └─ encode_png         png::Encoder で grayscale 8-bit PNG bytes へ変換
 │        └─ byte_array_from_slice    Vec<u8> → jbyteArray
 ├─ ensureDecodableWithinBudget       Kotlin wrapper : 寸法だけ先読みしてメモリ予算を検査
 └─ BitmapFactory.decodeByteArray     Kotlin wrapper : PNG → Bitmap (ARGB_8888)
@@ -59,7 +59,8 @@ QrForge.createBitmap
 
 ### Rust core
 
-QR エンコードと PNG 生成、option の値域検証。
+QR エンコード、`RenderedQrImage` が持つ `Vec<u8>` への grayscale pixel 描画、`png` crate による
+PNG 生成、option の値域検証。
 
 Android・JNI・Kotlin の型を持ち込まない。この制約があるおかげで、`cargo test` だけで生成
 ロジックを検証できる。
