@@ -4,9 +4,10 @@ use std::fmt::{self, Display, Formatter};
 #[derive(Debug)]
 pub enum QrForgeError {
     BlankInput,
-    InvalidOptions(&'static str),
+    /// Option validation failure. 範囲を含む文言を組み立てるため String を持つ。
+    InvalidOptions(String),
     QrEncoding(qrcode::types::QrError),
-    PngEncoding(image::ImageError),
+    PngEncoding(png::EncodingError),
 }
 
 impl Display for QrForgeError {
@@ -37,8 +38,8 @@ impl From<qrcode::types::QrError> for QrForgeError {
     }
 }
 
-impl From<image::ImageError> for QrForgeError {
-    fn from(error: image::ImageError) -> Self {
+impl From<png::EncodingError> for QrForgeError {
+    fn from(error: png::EncodingError) -> Self {
         Self::PngEncoding(error)
     }
 }

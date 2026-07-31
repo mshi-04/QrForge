@@ -1,16 +1,37 @@
 package com.appvoyager.qrforge.internal
 
 internal object QrForgeNative {
+    private const val NATIVE_LIBRARY_UNAVAILABLE_MESSAGE =
+        "QrForge native library is unavailable"
+    private const val NATIVE_ENTRY_POINT_UNAVAILABLE_MESSAGE =
+        "QrForge native entry point is unavailable"
+
     @JvmSynthetic
-    fun generateQrPng(text: String, size: Int, margin: Int): ByteArray {
-        NativeLibraryLoader.load()
-        return try {
-            nativeGenerateQrPng(text, size, margin)
-        } catch (error: UnsatisfiedLinkError) {
-            throw NativeLibraryUnavailable(
-                message = "QrForge native entry point is unavailable",
-                cause = error,
-            )
+    fun generateQrPng(text: String, size: Int, margin: Int): ByteArray =
+        generateQrPng(
+            text = text,
+            size = size,
+            margin = margin,
+            loadLibrary = NativeLibraryLoader::load,
+            invokeNative = ::nativeGenerateQrPng,
+        )
+
+    // load と entry point 解決の失敗を ambient な native 環境に依存せず検証するため internal に置く。
+    // Java 利用者向けの public API ではない。
+    @JvmSynthetic
+    internal fun generateQrPng(
+        text: String,
+        size: Int,
+        margin: Int,
+        loadLibrary: () -> Unit,
+        invokeNative: (String, Int, Int) -> ByteArray,
+    ): ByteArray {
+        mapLinkError(NATIVE_LIBRARY_UNAVAILABLE_MESSAGE) {
+            loadLibrary()
+        }
+
+        return mapLinkError(NATIVE_ENTRY_POINT_UNAVAILABLE_MESSAGE) {
+            invokeNative(text, size, margin)
         }
     }
 
@@ -21,31 +42,33 @@ internal object QrForgeNative {
         margin: Int,
     ): ByteArray
 
+    // UnsatisfiedLinkError は library load 時と entry point 解決時の両方で起き得るので、
+    // NativeLibraryUnavailable への変換をここに一本化する。
+    private inline fun <T> mapLinkError(message: String, block: () -> T): T =
+        try {
+            block()
+        } catch (error: UnsatisfiedLinkError) {
+            throw NativeLibraryUnavailable(message = message, cause = error)
+        }
+
+    private object NativeLibraryLoader {
+        @Volatile private var isLoaded = false
+
+        @Synchronized
+        fun load() {
+            if (isLoaded) {
+                return
+            }
+
+            System.loadLibrary("qrforge")
+            isLoaded = true
+        }
+    }
+
     class NativeLibraryUnavailable(
         message: String,
         cause: Throwable,
     ) : RuntimeException(message, cause)
 
     class GenerationFailed(message: String) : RuntimeException(message)
-}
-
-private object NativeLibraryLoader {
-    @Volatile private var isLoaded = false
-
-    @Synchronized
-    fun load() {
-        if (isLoaded) {
-            return
-        }
-
-        try {
-            System.loadLibrary("qrforge")
-            isLoaded = true
-        } catch (error: UnsatisfiedLinkError) {
-            throw QrForgeNative.NativeLibraryUnavailable(
-                message = "QrForge native library is unavailable",
-                cause = error,
-            )
-        }
-    }
 }

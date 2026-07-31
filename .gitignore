@@ -21,6 +21,10 @@ local.properties
 target/
 **/target/
 
+# Python
+__pycache__/
+*.py[cod]
+
 # Native build outputs
 *.so
 !qrforge/src/main/jniLibs/
