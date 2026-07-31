@@ -9,10 +9,13 @@ use qrcode::QrCode;
 
 pub use error::QrForgeError;
 
+// QrOptions の値域はこの crate を正典とし、Kotlin 側 `QrOptions` の companion 定数と
+// 同じ値を保つ。変更時は docs/api-design.md の「定数同期」表も合わせて更新する。
 const DEFAULT_IMAGE_SIZE: u32 = 512;
 const DEFAULT_MARGIN: u32 = 4;
 const MIN_IMAGE_SIZE: u32 = 1;
 const MAX_IMAGE_SIZE: u32 = 4096;
+const MIN_MARGIN: u32 = 0;
 const MAX_MARGIN: u32 = 64;
 
 pub struct QrOptions {
@@ -51,15 +54,15 @@ pub fn generate_qr_png(text: &str, options: &QrOptions) -> Result<Vec<u8>, QrFor
 
 fn validate_options(options: &QrOptions) -> Result<(), QrForgeError> {
     if options.size < MIN_IMAGE_SIZE || options.size > MAX_IMAGE_SIZE {
-        return Err(QrForgeError::InvalidOptions(
-            "QR image size must be between 1 and 4096 pixels",
-        ));
+        return Err(QrForgeError::InvalidOptions(format!(
+            "QR image size must be between {MIN_IMAGE_SIZE} and {MAX_IMAGE_SIZE} pixels"
+        )));
     }
 
     if options.margin > MAX_MARGIN {
-        return Err(QrForgeError::InvalidOptions(
-            "QR margin must be between 0 and 64 modules",
-        ));
+        return Err(QrForgeError::InvalidOptions(format!(
+            "QR margin must be between {MIN_MARGIN} and {MAX_MARGIN} modules"
+        )));
     }
 
     Ok(())
@@ -91,12 +94,16 @@ fn draw_module(
     margin: u32,
     module_size: u32,
 ) {
-    let start_x = (module_x + margin) * module_size;
-    let start_y = (module_y + margin) * module_size;
+    // Luma<u8> は 1 ピクセル 1 バイトなので、raw buffer の行スライスをまとめて塗れる。
+    // put_pixel をピクセル単位で呼ぶより、最大構成 (約 4270x4270) で大きく速い。
+    let image_width = image.width() as usize;
+    let start_x = ((module_x + margin) * module_size) as usize;
+    let start_y = ((module_y + margin) * module_size) as usize;
+    let module_size = module_size as usize;
+    let raw: &mut [u8] = image;
 
     for y in start_y..start_y + module_size {
-        for x in start_x..start_x + module_size {
-            image.put_pixel(x, y, Luma([0]));
-        }
+        let row_start = y * image_width + start_x;
+        raw[row_start..row_start + module_size].fill(0);
     }
 }

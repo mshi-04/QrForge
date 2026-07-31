@@ -13,11 +13,12 @@ object QrForge {
     // デコード後 Bitmap の確保メモリ上限。QrOptions.MAX_SIZE から生成され得る最大寸法
     // (約 4400x4400 ≒ 77MiB) に余裕を持たせた値。これを超える確保は捕捉不能な
     // OutOfMemoryError になる前に QrForgeException で明示的に失敗させる。
+    //
+    // テストから検証するため internal に置いている。public API ではない。
     internal const val MAX_BITMAP_BYTES = 128L * 1024 * 1024
 
-    fun createBitmap(text: String): Bitmap = createBitmap(text, DEFAULT_OPTIONS)
-
-    fun createBitmap(text: String, options: QrOptions): Bitmap {
+    @JvmOverloads
+    fun createBitmap(text: String, options: QrOptions = DEFAULT_OPTIONS): Bitmap {
         val bytes = createPngBytes(text, options)
         ensureDecodableWithinBudget(bytes)
 
@@ -33,6 +34,22 @@ object QrForge {
         }
     }
 
+    @JvmOverloads
+    fun createPngBytes(text: String, options: QrOptions = DEFAULT_OPTIONS): ByteArray {
+        requireNonBlankText(text)
+
+        return try {
+            QrForgeNative.generateQrPng(text, options.size, options.margin)
+        } catch (error: QrForgeNative.NativeLibraryUnavailable) {
+            throw QrForgeException.NativeLibraryUnavailable(
+                error.message ?: "QrForge native library is unavailable",
+                error,
+            )
+        } catch (error: QrForgeNative.GenerationFailed) {
+            throw QrForgeException.GenerationFailed(error.message ?: "QR generation failed", error)
+        }
+    }
+
     private fun ensureDecodableWithinBudget(bytes: ByteArray) {
         // inJustDecodeBounds で寸法のみ取得し、巨大確保の前に予算を検査する。
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
@@ -40,6 +57,7 @@ object QrForge {
         ensureWithinBitmapBudget(bounds.outWidth, bounds.outHeight)
     }
 
+    // テストから検証するため internal に置いている。public API ではない。
     internal fun ensureWithinBitmapBudget(width: Int, height: Int) {
         if (width <= 0 || height <= 0) {
             // 寸法を取得できなかった場合は後続の実デコードにエラー処理を委ねる。
@@ -57,25 +75,8 @@ object QrForge {
         }
     }
 
-    fun createPngBytes(text: String): ByteArray = createPngBytes(text, DEFAULT_OPTIONS)
-
-    fun createPngBytes(text: String, options: QrOptions): ByteArray {
-        val validText = validateText(text)
-
-        return try {
-            QrForgeNative.generateQrPng(validText, options.size, options.margin)
-        } catch (error: QrForgeNative.NativeLibraryUnavailable) {
-            throw QrForgeException.NativeLibraryUnavailable(error.message.orEmpty(), error)
-        } catch (error: QrForgeNative.GenerationFailed) {
-            throw QrForgeException.GenerationFailed(error.message ?: "QR generation failed", error)
-        }
-    }
-
-    private fun validateText(text: String): String {
-        if (text.isBlank()) {
-            throw IllegalArgumentException("QR text must not be blank")
-        }
-
-        return text
+    // テストから検証するため internal に置いている。public API ではない。
+    internal fun requireNonBlankText(text: String) {
+        require(text.isNotBlank()) { "QR text must not be blank" }
     }
 }

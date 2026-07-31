@@ -6,14 +6,16 @@ Android 利用者が Rust、JNI、NDK を意識せず QR コードを生成で�
 
 ```kotlin
 object QrForge {
-    fun createBitmap(text: String): Bitmap
-    fun createBitmap(text: String, options: QrOptions): Bitmap
-    fun createPngBytes(text: String): ByteArray
-    fun createPngBytes(text: String, options: QrOptions): ByteArray
+    @JvmOverloads
+    fun createBitmap(text: String, options: QrOptions = QrOptions()): Bitmap
+
+    @JvmOverloads
+    fun createPngBytes(text: String, options: QrOptions = QrOptions()): ByteArray
 }
 ```
 
-option なし API は `QrOptions()` を使う互換入口。
+option を省略した場合は `QrOptions()` を使う。`@JvmOverloads` により Java からは
+`createBitmap(String)` / `createBitmap(String, QrOptions)` の 2 つの overload として見える。
 
 ## QrOptions
 
@@ -67,7 +69,7 @@ internal object QrForgeNative {
 
 ## 定数同期
 
-`QrOptions` の定数は Kotlin と Rust core の両方にある。変更時は同時に更新する。
+`QrOptions` の定数は Kotlin と Rust core の両方にある。Rust core を正典とし、変更時は同時に更新する。
 
 | 定数 | 値 | 定義箇所 |
 |------|----|---------|
@@ -75,8 +77,10 @@ internal object QrForgeNative {
 | `DEFAULT_MARGIN` | 4 | `QrOptions.kt`, `qrforge-core/src/lib.rs` |
 | `MIN_SIZE` | 1 | `QrOptions.kt`, `qrforge-core/src/lib.rs` |
 | `MAX_SIZE` | 4096 | `QrOptions.kt`, `qrforge-core/src/lib.rs` |
-| `MIN_MARGIN` | 0 | `QrOptions.kt` |
+| `MIN_MARGIN` | 0 | `QrOptions.kt`, `qrforge-core/src/lib.rs` |
 | `MAX_MARGIN` | 64 | `QrOptions.kt`, `qrforge-core/src/lib.rs` |
+
+Rust core の option 範囲エラー文言はこれらの定数から組み立てるため、値を変えるとメッセージも追従する。
 
 ## 互換性
 

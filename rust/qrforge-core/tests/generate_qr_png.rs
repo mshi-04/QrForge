@@ -1,6 +1,8 @@
 use qrforge_core::{generate_qr_png, QrForgeError, QrOptions};
 
 const PNG_HEADER: &[u8; 8] = b"\x89PNG\r\n\x1a\n";
+const DARK: u8 = 0;
+const LIGHT: u8 = 255;
 
 #[test]
 fn returns_png_bytes_for_regular_text() {
@@ -165,6 +167,70 @@ fn applies_custom_margin_to_output_width() {
 }
 
 #[test]
+fn renders_dark_module_at_image_origin_without_margin() {
+    // Arrange: size=1, margin=0 では 1 module = 1 pixel になる
+    let options = QrOptions { size: 1, margin: 0 };
+
+    // Act
+    let image = decode_luma(
+        &generate_qr_png("module origin", &options).expect("text should generate PNG bytes"),
+    );
+
+    // Assert: finder pattern の左上 module は必ず dark
+    assert_eq!(image.get_pixel(0, 0)[0], DARK);
+}
+
+#[test]
+fn renders_quiet_zone_at_image_origin_with_margin() {
+    // Arrange
+    let options = QrOptions { size: 1, margin: 2 };
+
+    // Act
+    let image = decode_luma(
+        &generate_qr_png("quiet zone", &options).expect("text should generate PNG bytes"),
+    );
+
+    // Assert
+    assert_eq!(image.get_pixel(0, 0)[0], LIGHT);
+}
+
+#[test]
+fn offsets_modules_by_margin() {
+    // Arrange
+    let options = QrOptions { size: 1, margin: 2 };
+
+    // Act
+    let image = decode_luma(
+        &generate_qr_png("margin offset", &options).expect("text should generate PNG bytes"),
+    );
+
+    // Assert: finder pattern の左上 module が margin 分だけずれた位置に来る
+    assert_eq!(image.get_pixel(2, 2)[0], DARK);
+}
+
+#[test]
+fn fills_whole_module_area_when_module_size_is_larger_than_one() {
+    // Arrange: size=1, margin=0 の出力幅は QR module 数と一致するので、その 3 倍を指定すると
+    // 1 module = 3x3 pixel になる
+    let qr_width = png_width(
+        &generate_qr_png("module fill", &QrOptions { size: 1, margin: 0 })
+            .expect("text should generate PNG bytes"),
+    );
+    let options = QrOptions {
+        size: qr_width * 3,
+        margin: 0,
+    };
+
+    // Act
+    let image = decode_luma(
+        &generate_qr_png("module fill", &options).expect("text should generate PNG bytes"),
+    );
+
+    // Assert: 左上 module の 3x3 全域が塗られている
+    assert_eq!(image.get_pixel(2, 2)[0], DARK);
+}
+
+#[test]
 fn returns_error_for_zero_size() {
     // Arrange
     let options = QrOptions { size: 0, margin: 4 };
@@ -207,6 +273,44 @@ fn returns_error_for_too_large_margin() {
 
     // Assert
     assert!(matches!(error, QrForgeError::InvalidOptions(_)));
+}
+
+#[test]
+fn invalid_size_error_reports_allowed_size_range() {
+    // Arrange
+    let options = QrOptions {
+        size: 4097,
+        margin: 4,
+    };
+
+    // Act
+    let error =
+        generate_qr_png("invalid size", &options).expect_err("too large size should be rejected");
+
+    // Assert
+    assert_eq!(
+        error.to_string(),
+        "QR image size must be between 1 and 4096 pixels"
+    );
+}
+
+#[test]
+fn invalid_margin_error_reports_allowed_margin_range() {
+    // Arrange
+    let options = QrOptions {
+        size: 512,
+        margin: 65,
+    };
+
+    // Act
+    let error = generate_qr_png("invalid margin", &options)
+        .expect_err("too large margin should be rejected");
+
+    // Assert
+    assert_eq!(
+        error.to_string(),
+        "QR margin must be between 0 and 64 modules"
+    );
 }
 
 #[test]
@@ -253,13 +357,19 @@ fn blank_input_display_message_is_stable() {
 #[test]
 fn invalid_options_display_uses_validation_message() {
     // Arrange
-    let error = QrForgeError::InvalidOptions("custom validation message");
+    let error = QrForgeError::InvalidOptions("custom validation message".to_string());
 
     // Act
     let message = error.to_string();
 
     // Assert
     assert_eq!(message, "custom validation message");
+}
+
+fn decode_luma(bytes: &[u8]) -> image::GrayImage {
+    image::load_from_memory(bytes)
+        .expect("generated PNG should be decodable")
+        .to_luma8()
 }
 
 fn png_width(bytes: &[u8]) -> u32 {

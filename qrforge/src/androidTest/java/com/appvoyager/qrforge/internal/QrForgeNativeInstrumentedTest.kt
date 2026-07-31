@@ -1,5 +1,9 @@
 package com.appvoyager.qrforge.internal
 
+import com.appvoyager.qrforge.QrForgeTestFixtures.CUSTOM_MARGIN
+import com.appvoyager.qrforge.QrForgeTestFixtures.CUSTOM_SIZE
+import com.appvoyager.qrforge.QrForgeTestFixtures.PNG_HEADER
+import com.appvoyager.qrforge.QrOptions
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -14,8 +18,8 @@ class QrForgeNativeInstrumentedTest {
         // Act
         val bytes = QrForgeNative.generateQrPng(
             text = text,
-            size = DEFAULT_SIZE,
-            margin = DEFAULT_MARGIN,
+            size = VALID_SIZE,
+            margin = VALID_MARGIN,
         )
 
         // Assert
@@ -30,8 +34,8 @@ class QrForgeNativeInstrumentedTest {
         // Act
         val bytes = QrForgeNative.generateQrPng(
             text = text,
-            size = DEFAULT_SIZE,
-            margin = DEFAULT_MARGIN,
+            size = VALID_SIZE,
+            margin = VALID_MARGIN,
         )
 
         // Assert
@@ -77,7 +81,7 @@ class QrForgeNativeInstrumentedTest {
 
         // Act & Assert
         assertThrows(IllegalArgumentException::class.java) {
-            QrForgeNative.generateQrPng(text, DEFAULT_SIZE, DEFAULT_MARGIN)
+            QrForgeNative.generateQrPng(text, VALID_SIZE, VALID_MARGIN)
         }
     }
 
@@ -88,7 +92,7 @@ class QrForgeNativeInstrumentedTest {
 
         // Act & Assert
         assertThrows(IllegalArgumentException::class.java) {
-            QrForgeNative.generateQrPng(text, DEFAULT_SIZE, DEFAULT_MARGIN)
+            QrForgeNative.generateQrPng(text, VALID_SIZE, VALID_MARGIN)
         }
     }
 
@@ -99,18 +103,40 @@ class QrForgeNativeInstrumentedTest {
 
         // Act & Assert
         assertThrows(IllegalArgumentException::class.java) {
-            QrForgeNative.generateQrPng("invalid size", size, DEFAULT_MARGIN)
+            QrForgeNative.generateQrPng("invalid size", size, VALID_MARGIN)
         }
     }
 
     @Test
     fun generateQrPngThrowsOnInvalidMargin() {
         // Arrange
-        val margin = 65
+        val margin = QrOptions.MAX_MARGIN + 1
 
         // Act & Assert
         assertThrows(IllegalArgumentException::class.java) {
-            QrForgeNative.generateQrPng("invalid margin", DEFAULT_SIZE, margin)
+            QrForgeNative.generateQrPng("invalid margin", VALID_SIZE, margin)
+        }
+    }
+
+    @Test
+    fun generateQrPngThrowsOnNegativeSize() {
+        // Arrange: JNI 境界での u32 変換前に弾かれる
+        val size = -1
+
+        // Act & Assert
+        assertThrows(IllegalArgumentException::class.java) {
+            QrForgeNative.generateQrPng("negative size", size, VALID_MARGIN)
+        }
+    }
+
+    @Test
+    fun generateQrPngThrowsOnNegativeMargin() {
+        // Arrange: JNI 境界での u32 変換前に弾かれる
+        val margin = -1
+
+        // Act & Assert
+        assertThrows(IllegalArgumentException::class.java) {
+            QrForgeNative.generateQrPng("negative margin", VALID_SIZE, margin)
         }
     }
 
@@ -121,24 +147,13 @@ class QrForgeNativeInstrumentedTest {
 
         // Act & Assert
         assertThrows(QrForgeNative.GenerationFailed::class.java) {
-            QrForgeNative.generateQrPng(oversizedText, DEFAULT_SIZE, DEFAULT_MARGIN)
+            QrForgeNative.generateQrPng(oversizedText, VALID_SIZE, VALID_MARGIN)
         }
     }
 
     private companion object {
-        private const val DEFAULT_SIZE = 512
-        private const val DEFAULT_MARGIN = 4
-        private const val CUSTOM_SIZE = 768
-        private const val CUSTOM_MARGIN = 6
-        private val PNG_HEADER = byteArrayOf(
-            0x89.toByte(),
-            0x50,
-            0x4E,
-            0x47,
-            0x0D,
-            0x0A,
-            0x1A,
-            0x0A,
-        )
+        // JNI binding は default 値を持たないので、単に有効な値として扱う。
+        private const val VALID_SIZE = QrOptions.DEFAULT_SIZE
+        private const val VALID_MARGIN = QrOptions.DEFAULT_MARGIN
     }
 }

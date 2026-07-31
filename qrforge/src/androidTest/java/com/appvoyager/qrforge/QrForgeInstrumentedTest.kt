@@ -1,6 +1,9 @@
 package com.appvoyager.qrforge
 
 import android.graphics.Bitmap
+import com.appvoyager.qrforge.QrForgeTestFixtures.CUSTOM_MARGIN
+import com.appvoyager.qrforge.QrForgeTestFixtures.CUSTOM_SIZE
+import com.appvoyager.qrforge.QrForgeTestFixtures.PNG_HEADER
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -177,6 +180,18 @@ class QrForgeInstrumentedTest {
     }
 
     @Test
+    fun createPngBytesHandlesSingleCharText() {
+        // Arrange
+        val text = "a"
+
+        // Act
+        val bytes = QrForge.createPngBytes(text)
+
+        // Assert
+        assertArrayEquals(PNG_HEADER, bytes.copyOf(PNG_HEADER.size))
+    }
+
+    @Test
     fun createPngBytesHandlesJapaneseText() {
         // Arrange
         val text = "日本語テスト"
@@ -210,20 +225,5 @@ class QrForgeInstrumentedTest {
 
         // Assert
         assertArrayEquals(PNG_HEADER, bytes.copyOf(PNG_HEADER.size))
-    }
-
-    private companion object {
-        private const val CUSTOM_SIZE = 768
-        private const val CUSTOM_MARGIN = 6
-        private val PNG_HEADER = byteArrayOf(
-            0x89.toByte(),
-            0x50,
-            0x4E,
-            0x47,
-            0x0D,
-            0x0A,
-            0x1A,
-            0x0A,
-        )
     }
 }

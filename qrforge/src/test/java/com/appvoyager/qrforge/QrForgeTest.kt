@@ -1,5 +1,6 @@
 package com.appvoyager.qrforge
 
+import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
@@ -49,49 +50,49 @@ class QrForgeTest {
         }
     }
 
+    // native library を解決できない JVM 上では「生成が成功すること」を検証できないため、
+    // 入力検証そのものを直接確認する。native 経路は Instrumented Test で担保する。
     @Test
-    fun createPngBytesDoesNotRejectSingleChar() {
+    fun requireNonBlankTextAcceptsSingleChar() {
         // Arrange
         val text = "a"
 
         // Act & Assert
-        assertThrows(QrForgeException.NativeLibraryUnavailable::class.java) {
-            QrForge.createPngBytes(text)
+        assertDoesNotThrow {
+            QrForge.requireNonBlankText(text)
         }
     }
 
     @Test
-    fun createPngBytesDoesNotRejectMultibyteText() {
+    fun requireNonBlankTextAcceptsMultibyteText() {
         // Arrange
         val text = "日本語テスト"
 
         // Act & Assert
-        assertThrows(QrForgeException.NativeLibraryUnavailable::class.java) {
-            QrForge.createPngBytes(text)
+        assertDoesNotThrow {
+            QrForge.requireNonBlankText(text)
         }
     }
 
     @Test
-    fun createPngBytesWithOptionsDoesNotRejectRegularText() {
-        // Arrange
-        val text = "options"
-        val options = QrOptions(size = 256, margin = 8)
+    fun requireNonBlankTextAcceptsTextWithSurroundingSpaces() {
+        // Arrange: SDK 側で trim しないため、前後の空白は入力として受理する
+        val text = "  padded  "
 
         // Act & Assert
-        assertThrows(QrForgeException.NativeLibraryUnavailable::class.java) {
-            QrForge.createPngBytes(text, options)
+        assertDoesNotThrow {
+            QrForge.requireNonBlankText(text)
         }
     }
 
     @Test
-    fun createBitmapWithOptionsDoesNotRejectRegularText() {
+    fun requireNonBlankTextRejectsBlankText() {
         // Arrange
-        val text = "bitmap options"
-        val options = QrOptions(size = 256, margin = 8)
+        val text = "   "
 
         // Act & Assert
-        assertThrows(QrForgeException.NativeLibraryUnavailable::class.java) {
-            QrForge.createBitmap(text, options)
+        assertThrows(IllegalArgumentException::class.java) {
+            QrForge.requireNonBlankText(text)
         }
     }
 
