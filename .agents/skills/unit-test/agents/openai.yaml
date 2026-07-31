@@ -1,4 +1,4 @@
 interface:
   display_name: "Unit Test"
-  short_description: "QrForgeのテスト配置・native library鮮度・実行結果を確認する手順"
+  short_description: "QrForgeのテスト配置・種別ごとの前提・実行結果を確認する手順"
   default_prompt: "Use $unit-test to add or update QrForge tests with the correct test layer and checks."

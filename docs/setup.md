@@ -10,8 +10,8 @@
 | JDK | 17 | Gradle build daemon・CI は Adoptium 17 を使用する |
 | Android NDK | r27 以降 | `ANDROID_NDK_HOME` / `ANDROID_NDK_ROOT` を設定する |
 | Rust toolchain | stable | `rustfmt`・`clippy` component 込み |
-| cargo-ndk | 任意 | `cargo install cargo-ndk` |
-| Python | 3.10 以降 | repository 整合性 checker と skill 同期に使用 |
+| cargo-ndk | native library ビルド時は必須 | `cargo install cargo-ndk` |
+| Python | 3.10 以降 | repository 整合性 checker に使用 |
 
 Rust target を追加する。
 
@@ -69,6 +69,19 @@ qrforge/src/main/jniLibs/x86_64/libqrforge.so
 ```powershell
 git diff --stat qrforge/src/main/jniLibs
 ```
+
+- AAR と instrumented test APK を生成し、両方に 3 ABI の `.so` が同梱されていることを確認する。
+
+```powershell
+.\gradlew.bat :qrforge:assembleDebug :qrforge:assembleDebugAndroidTest
+jar tf qrforge/build/outputs/aar/qrforge-debug.aar `
+  | Select-String '^jni/(arm64-v8a|armeabi-v7a|x86_64)/libqrforge\.so$'
+jar tf qrforge/build/outputs/apk/androidTest/debug/qrforge-debug-androidTest.apk `
+  | Select-String '^lib/(arm64-v8a|armeabi-v7a|x86_64)/libqrforge\.so$'
+```
+
+各コマンドで 3 ABI が 1 行ずつ表示されることを確認する。欠けている ABI があれば再生成・同梱は
+未完了として扱う。
 
 - 再ビルドしていない場合は、Android 側のテストが緑でも「native 側は未検証」として報告する。
 

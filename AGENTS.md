@@ -10,11 +10,9 @@ QrForge は、Android/Kotlin から SDK 風に呼び出せる Rust 製 QR コー
 
 ## Android ABI / native library
 
-- Rust native library は Android library module の `qrforge/src/main/jniLibs/<abi>/libqrforge.so` に配置する。sample app の `app/src/main/jniLibs` には置かない。
-- 既定の対応 ABI は `arm64-v8a`、`armeabi-v7a`、`x86_64` とする。
-- `x86` は 32-bit x86 emulator が必要な場合のみ追加する。追加する場合は `i686-linux-android` target、`cargo ndk -t x86`、Android 側 `abiFilters`、README / setup / CI を同時に見直す。
-- `System.loadLibrary("qrforge")` は internal 実装に閉じ、ABI 追加のために公開 API や sample app から直接 JNI を扱わせない。
-- `.so` を再生成した場合は、対象 ABI のディレクトリと AAR / APK への同梱結果を確認し、実行していない端末検証は未実施として報告する。
+ABI・native library の配置とレイヤー責務は [docs/architecture.md](docs/architecture.md)、ビルド・
+再生成・同梱確認は [docs/setup.md](docs/setup.md)、公開範囲は [docs/api-design.md](docs/api-design.md)
+を正典とする。運用詳細はこのファイルに重複させない。
 
 ## Skill
 
