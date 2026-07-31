@@ -131,7 +131,9 @@ Kotlin 側の `require` メッセージも同様に定数を埋め込む。
 ## 互換性
 
 - 既存 public API の関数名、引数、戻り値型、例外の意味、入力の解釈を変えない。
-- public model に property を追加するときは default 値を用意する。
-- 新しい設定は既存 API の破壊ではなく `QrOptions` への追加で行う。
+- public model の primary constructor に default 値付き parameter を追加する変更は source compatibility
+  を保てても、既存 constructor の JVM descriptor が変わるため binary compatibility は保てない。
+- `QrOptions` に設定を追加して binary compatibility も維持する場合は、既存 descriptor の互換
+  constructor を残すか、既存 constructor を変えず factory など別の入口を追加する。
 - 非同期 API は必要性が確認されてから追加する。今は同期のみ。
 - 値域を広げる変更は互換だが、狭める変更は非互換として扱う。

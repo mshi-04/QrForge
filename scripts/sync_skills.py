@@ -55,14 +55,29 @@ def skill_copy_errors() -> list[str]:
 
 
 def sync_skill_copies() -> int:
-    copied = 0
-    for name, source in canonical_skill_files().items():
+    canonical = canonical_skill_files()
+    if not canonical:
+        return 0
+
+    claude = claude_skill_files()
+    changed = 0
+
+    for extra_name in sorted(claude.keys() - canonical.keys()):
+        extra_skill = claude[extra_name]
+        extra_skill.unlink()
+        try:
+            extra_skill.parent.rmdir()
+        except OSError:
+            pass
+        changed += 1
+
+    for name, source in canonical.items():
         target = CLAUDE_SKILLS_ROOT / name / SKILL_FILE_NAME
         target.parent.mkdir(parents=True, exist_ok=True)
         if not target.exists() or source.read_bytes() != target.read_bytes():
             shutil.copyfile(source, target)
-            copied += 1
-    return copied
+            changed += 1
+    return changed
 
 
 def main() -> int:
@@ -75,8 +90,8 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.sync:
-        copied = sync_skill_copies()
-        print(f"Synchronized {copied} skill file(s).")
+        changed = sync_skill_copies()
+        print(f"Synchronized {changed} skill change(s).")
 
     errors = skill_copy_errors()
     if errors:

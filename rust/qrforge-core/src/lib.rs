@@ -42,7 +42,7 @@ impl Default for QrOptions {
 }
 
 pub fn generate_qr_png(text: &str, options: &QrOptions) -> Result<Vec<u8>, QrForgeError> {
-    if text.trim().is_empty() {
+    if text.chars().all(is_contract_whitespace) {
         return Err(QrForgeError::BlankInput);
     }
     validate_options(options)?;
@@ -50,6 +50,13 @@ pub fn generate_qr_png(text: &str, options: &QrOptions) -> Result<Vec<u8>, QrFor
     let code = QrCode::new(text.as_bytes())?;
     let image = render_qr_image(&code, options);
     encode_png(&image).map_err(QrForgeError::from)
+}
+
+fn is_contract_whitespace(character: char) -> bool {
+    // Kotlin/JVM の Char.isWhitespace と同じ契約にする。Rust の Unicode White_Space との差は、
+    // U+001C..U+001F を追加し、NEXT LINE (U+0085) を除外する点。
+    matches!(character, '\u{001C}'..='\u{001F}')
+        || (character.is_whitespace() && character != '\u{0085}')
 }
 
 fn validate_options(options: &QrOptions) -> Result<(), QrForgeError> {

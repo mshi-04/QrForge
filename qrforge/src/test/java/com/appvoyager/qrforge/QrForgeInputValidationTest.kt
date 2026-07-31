@@ -40,6 +40,17 @@ class QrForgeInputValidationTest {
     }
 
     @Test
+    fun createPngBytesThrowsIllegalArgumentForControlWhitespace() {
+        // Arrange: Kotlin/JVM の Char.isWhitespace が扱う情報分離文字
+        val text = "\u001C\u001D\u001E\u001F"
+
+        // Act & Assert
+        assertThrows(IllegalArgumentException::class.java) {
+            QrForge.createPngBytes(text)
+        }
+    }
+
+    @Test
     fun createBitmapThrowsIllegalArgumentForBlankText() {
         // Arrange
         val text = ""
@@ -65,6 +76,17 @@ class QrForgeInputValidationTest {
     fun createPngBytesAcceptsMultibyteText() {
         // Arrange
         val text = "日本語テスト"
+
+        // Act & Assert
+        assertDoesNotThrow {
+            QrForge.createPngBytes(text, QrOptions(), ::generateStubPng)
+        }
+    }
+
+    @Test
+    fun createPngBytesAcceptsNextLineControl() {
+        // Arrange: NEXT LINE は Kotlin/JVM の Char.isWhitespace ではない
+        val text = "\u0085"
 
         // Act & Assert
         assertDoesNotThrow {

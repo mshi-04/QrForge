@@ -111,6 +111,34 @@ fn returns_error_for_whitespace_only_text() {
 }
 
 #[test]
+fn returns_error_for_kotlin_control_whitespace() {
+    // Arrange: Kotlin/JVM の Char.isWhitespace は U+001C..U+001F を blank として扱う。
+    let text = "\u{001C}\u{001D}\u{001E}\u{001F}";
+    let options = QrOptions::default();
+
+    // Act
+    let error = generate_qr_png(text, &options)
+        .expect_err("Kotlin-compatible control whitespace should be rejected");
+
+    // Assert
+    assert!(matches!(error, QrForgeError::BlankInput));
+}
+
+#[test]
+fn accepts_next_line_control_like_kotlin() {
+    // Arrange: NEXT LINE (U+0085) は Kotlin/JVM の Char.isWhitespace ではない。
+    let text = "\u{0085}";
+    let options = QrOptions::default();
+
+    // Act
+    let bytes = generate_qr_png(text, &options)
+        .expect("NEXT LINE control should be accepted as non-blank text");
+
+    // Assert
+    assert!(bytes.starts_with(PNG_HEADER));
+}
+
+#[test]
 fn respects_custom_dimensions() {
     // Arrange
     let options = QrOptions {

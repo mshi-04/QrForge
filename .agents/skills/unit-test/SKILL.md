@@ -9,37 +9,11 @@ description: >
 ## 手順
 
 1. 検証したい振る舞いを 1 文で言語化する
-2. 置き場所を決める（下記「どこに書くか」参照）
+2. `docs/unit-test.md` の配置と境界に従って置き場所を決める
 3. `docs/unit-test.md` の書き方に従って書く
-4. 実行前の前提を確認する（下記「実行前に確認すること」参照）
+4. `docs/setup.md` で `.so` の鮮度、端末要否、実行コマンドを確認する
 5. 実行する
 6. 報告する（下記「報告」参照）
-
-## どこに書くか
-
-配置表と書き方の規則は `docs/unit-test.md` にある。ここでは判断の入口だけ置く。
-
-1. **native library や Android SDK が要るか**
-   → 要る（native library load、JNI 呼び出し、`Bitmap` decode）なら `qrforge/src/androidTest/`
-2. 要らないとして、**検証対象は QR 生成・PNG bytes・option validation の中身か**
-   → そうなら `rust/qrforge-core/tests/`
-3. 要らないとして、**検証対象は Kotlin wrapper の入力検証・option model・例外変換前の分岐か**
-   → そうなら `qrforge/src/test/`
-
-迷ったら `docs/unit-test.md` の「3 つの置き場所」と「境界」を読む。
-
-特に、**native library が無いことによる例外を正常系の証拠に使わない**（`docs/unit-test.md`
-の「境界」参照）。JVM UnitTest で「入力が受理される」ことを確かめたいときは、入力検証そのものを
-直接テストする。
-
-## 実行前に確認すること
-
-- 直前に `rust/` を変更しているなら、ローカルの instrumented test を実行する前に `.so` を
-  再ビルドする。していないと変更前の native library を検証することになる（`docs/setup.md`）。
-- CI の instrumented job は repository にコミット済みの `x86_64` `.so` を検証し、Rust source の
-  3 ABI build は別の `rust` job が担う。両結果を同じ成果物の検証として扱わない。
-- `connectedDebugAndroidTest` は実機かエミュレーターが要る。無ければ未実施として報告する。
-- 特定のテストクラスだけ回す場合のコマンド形式は `docs/setup.md` にある。
 
 ## 報告
 
