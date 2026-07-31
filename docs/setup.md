@@ -121,19 +121,18 @@ CI の `rust` job は現在の source から 3 ABI を一時出力へビルド�
 
 ## repository の整合性確認
 
-`.agents/skills/` が skill 本文の正典。更新後は Claude Code 用の copy を同期し、repository 全体の
-整合性を確認する。
+Codex 用の `.agents/skills/` と Claude Code 用の `.claude/skills/` は、それぞれの仕組みに合わせて
+独立して管理する。skill を変更しても他方へ機械的に同期しない。
 
 ```powershell
-python scripts/sync_skills.py --sync
 python scripts/check_repo_consistency.py
 ```
 
 この文書では Python 3 の実行名を `python` と表記する。環境で `python3` として導入されている
 場合は読み替える（CI は `python3` を使用する）。
 
-整合性確認は Markdown の相対リンク、Codex / Claude Code の skill 本文、`abiFilters` と
-`qrforge/src/main/jniLibs/` の ABI directory を検証する。CI でも同じ checker を実行する。
+整合性確認は Markdown の相対リンク、`abiFilters` と `qrforge/src/main/jniLibs/` の ABI directory を
+検証する。CI でも同じ checker を実行する。
 
 ## CI ジョブとローカルコマンドの対応
 

@@ -1,4 +1,4 @@
 interface:
   display_name: "Layer Review"
-  short_description: "QrForge レビュー観点"
+  short_description: "QrForge固有の責務境界・API互換性・検証結果を確認するレビュー手順"
   default_prompt: "Use $layer-review to review a QrForge change with project-specific severity and layer-boundary checks."

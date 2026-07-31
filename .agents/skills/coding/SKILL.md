@@ -12,7 +12,7 @@ description: >
 2. 対象レイヤーに必要な docs だけを読む（下記「読む docs」参照）
 3. 対象範囲・責務境界・変更予定ファイル・実行する確認コマンド・やらないことを提示する
 4. 実装する
-5. `rust/` を変更したなら `docs/setup.md` に従って `.so` 再ビルドの要否を判断する
+5. `rust/` を変更したなら [docs/setup.md](../../../docs/setup.md) に従って `.so` 再ビルドの要否を判断する
 6. 変更レイヤーに対応する確認コマンドを実行する
 7. 報告する（下記「報告」参照）
 
@@ -22,11 +22,11 @@ skill には規則を書かない。判断が必要になった時点で該当�
 
 | 迷っていること | 読む docs |
 |---------------|-----------|
-| どのレイヤーの仕事か、依存方向は正しいか | `docs/architecture.md` |
-| 実装ルール、禁止事項、命名 | `docs/coding-rules.md` |
-| public API、例外の分類、`QrOptions` 定数 | `docs/api-design.md` |
-| テストを足す・直す | `docs/unit-test.md`（詳しくは `unit-test` skill） |
-| 確認コマンド、`.so` 再ビルド、cargo の注意 | `docs/setup.md` |
+| どのレイヤーの仕事か、依存方向は正しいか | [docs/architecture.md](../../../docs/architecture.md) |
+| 実装ルール、禁止事項、命名 | [docs/coding-rules.md](../../../docs/coding-rules.md) |
+| public API、例外の分類、`QrOptions` 定数 | [docs/api-design.md](../../../docs/api-design.md) |
+| テストを足す・直す | [docs/unit-test.md](../../../docs/unit-test.md)（詳しくは [unit-test skill](../unit-test/SKILL.md)） |
+| 確認コマンド、`.so` 再ビルド、cargo の注意 | [docs/setup.md](../../../docs/setup.md) |
 
 ## 報告
 

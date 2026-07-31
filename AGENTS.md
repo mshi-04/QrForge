@@ -19,12 +19,12 @@ QrForge は、Android/Kotlin から SDK 風に呼び出せる Rust 製 QR コー
 ## Skill
 
 用途別の skill を、Codex 用は `.agents/skills/`、Claude Code 用は `.claude/skills/` に置く。
-`.agents/skills/` を正典とし、Claude Code 用の本文は `python scripts/sync_skills.py --sync` で同期する。
-名前と用途は両者で対応しており、本文は同一に保つ。判断の実体は `docs/` 配下にあり、skill は
-手順・判断の入口・報告の型だけを持つ。
+Codex と Claude Code では skill の仕組みが異なるため、それぞれ独立して管理し、本文を機械的に
+同期しない。判断の実体は共通の `docs/` 配下に置き、skill は各ツールに合った手順・判断の入口・
+報告の型だけを持つ。
 
-文書リンク、skill 本文、ABI 設定の整合性は `python scripts/check_repo_consistency.py` で確認する。
-これらの script には Python 3.10 以降を使い、実行名が `python3` の環境では読み替える。
+文書リンクと ABI 設定の整合性は `python scripts/check_repo_consistency.py` で確認する。
+この script には Python 3.10 以降を使い、実行名が `python3` の環境では読み替える。
 
 | Skill | 用途 | Codex | Claude Code |
 |------|------|-------|-------------|

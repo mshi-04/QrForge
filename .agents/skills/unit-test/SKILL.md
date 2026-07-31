@@ -9,9 +9,9 @@ description: >
 ## 手順
 
 1. 検証したい振る舞いを 1 文で言語化する
-2. `docs/unit-test.md` の配置と境界に従って置き場所を決める
-3. `docs/unit-test.md` の書き方に従って書く
-4. `docs/setup.md` で `.so` の鮮度、端末要否、実行コマンドを確認する
+2. [docs/unit-test.md](../../../docs/unit-test.md) の配置と境界に従って置き場所を決める
+3. [docs/unit-test.md](../../../docs/unit-test.md) の書き方に従って書く
+4. [docs/setup.md](../../../docs/setup.md) で `.so` の鮮度、端末要否、実行コマンドを確認する
 5. 実行する
 6. 報告する（下記「報告」参照）
 

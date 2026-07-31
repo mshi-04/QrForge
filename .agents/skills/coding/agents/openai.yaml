@@ -1,4 +1,4 @@
 interface:
   display_name: "Coding"
-  short_description: "QrForge 実装作業の手順"
+  short_description: "QrForgeの責務境界を守って実装・検証するための手順"
   default_prompt: "Use $coding to implement a QrForge change with the correct layer boundaries and checks."

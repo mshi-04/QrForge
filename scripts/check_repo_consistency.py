@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check repository documentation, skill copies, and Android ABI consistency."""
+"""Check repository documentation and Android ABI consistency."""
 
 from __future__ import annotations
 
@@ -7,9 +7,7 @@ import re
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-from sync_skills import REPOSITORY_ROOT, canonical_skill_files, skill_copy_errors
-
-
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 EXCLUDED_DIRECTORY_NAMES = {
     ".git",
     ".gradle",
@@ -121,9 +119,8 @@ def abi_consistency_errors() -> tuple[list[str], set[str]]:
 
 def main() -> int:
     link_errors, checked_links = markdown_link_errors()
-    copy_errors = skill_copy_errors()
     abi_errors, configured_abis = abi_consistency_errors()
-    errors = link_errors + copy_errors + abi_errors
+    errors = link_errors + abi_errors
 
     if errors:
         print("Repository consistency check failed:")
@@ -134,7 +131,6 @@ def main() -> int:
     print(
         "Repository consistency check passed: "
         f"{checked_links} relative Markdown link(s), "
-        f"{len(canonical_skill_files())} skill pair(s), "
         f"{len(configured_abis)} ABI directory/directories."
     )
     return 0
