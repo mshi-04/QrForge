@@ -1,0 +1,4 @@
+interface:
+  display_name: "Coding"
+  short_description: "QrForge 実装作業の手順"
+  default_prompt: "Use $coding to implement a QrForge change with the correct layer boundaries and checks."

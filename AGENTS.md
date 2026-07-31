@@ -4,12 +4,9 @@ QrForge は、Android/Kotlin から SDK 風に呼び出せる Rust 製 QR コー
 
 ## 基本行動
 
-- 日本語で回答する。
 - 実装前に対象範囲・責務境界・確認方法を含む計画を提示する。
 - Rust core・JNI bridge・Kotlin wrapper の責務を混ぜない。
 - JNI 関数を利用者向け公開 API として扱わない。
-- 変更後は確認コマンドを実行し結果を報告する（コマンドは [docs/setup.md](docs/setup.md)）。
-- `rg` コマンドを使用しない（`Grep` ツールを使う）。
 
 ## Android ABI / native library
 
@@ -19,27 +16,33 @@ QrForge は、Android/Kotlin から SDK 風に呼び出せる Rust 製 QR コー
 - `System.loadLibrary("qrforge")` は internal 実装に閉じ、ABI 追加のために公開 API や sample app から直接 JNI を扱わせない。
 - `.so` を再生成した場合は、対象 ABI のディレクトリと AAR / APK への同梱結果を確認し、実行していない端末検証は未実施として報告する。
 
-## Codex skill
+## Skill
 
-用途別の Codex skill は `.agents/skills/` 配下に置く。
+用途別の skill を、Codex 用は `.agents/skills/`、Claude Code 用は `.claude/skills/` に置く。
+名前と用途は両者で対応しており、本文は同一に保つ。判断の実体は `docs/` 配下にあり、skill は
+手順・判断の入口・報告の型だけを持つ。
 
-| Skill | 用途 |
-|------|------|
-| [.agents/skills/qrforge-coding/SKILL.md](.agents/skills/qrforge-coding/SKILL.md) | 実装・修正作業 |
-| [.agents/skills/qrforge-unit-test/SKILL.md](.agents/skills/qrforge-unit-test/SKILL.md) | UnitTest 作成・修正 |
-| [.agents/skills/qrforge-review/SKILL.md](.agents/skills/qrforge-review/SKILL.md) | コードレビュー |
+| Skill | 用途 | Codex | Claude Code |
+|------|------|-------|-------------|
+| `coding` | 実装・修正作業 | [.agents/skills/coding/SKILL.md](.agents/skills/coding/SKILL.md) | [.claude/skills/coding/SKILL.md](.claude/skills/coding/SKILL.md) |
+| `unit-test` | UnitTest 作成・修正 | [.agents/skills/unit-test/SKILL.md](.agents/skills/unit-test/SKILL.md) | [.claude/skills/unit-test/SKILL.md](.claude/skills/unit-test/SKILL.md) |
+| `layer-review` | コードレビュー | [.agents/skills/layer-review/SKILL.md](.agents/skills/layer-review/SKILL.md) | [.claude/skills/layer-review/SKILL.md](.claude/skills/layer-review/SKILL.md) |
+
+`layer-review` は Claude Code 組み込みの `/review`、`/code-review`、`/security-review` と
+名前が衝突しないようにしたもの。
 
 ## 参照文書
 
-| 文書 | 内容 |
-|------|------|
-| [docs/architecture.md](docs/architecture.md) | レイヤ構成・責務・依存方向 |
-| [docs/coding-rules.md](docs/coding-rules.md) | Kotlin・Rust・JNI の実装ルール |
-| [docs/unit-test.md](docs/unit-test.md) | UnitTest・Instrumented Test の作成ルール |
-| [docs/api-design.md](docs/api-design.md) | 公開 API・例外・呼び出し例 |
-| [docs/setup.md](docs/setup.md) | ビルド・テスト実行手順 |
-| [docs/review-rules.md](docs/review-rules.md) | レビュー指摘分類・フォーマット |
-| [docs/sub-agent-guidelines.md](docs/sub-agent-guidelines.md) | サブエージェント運用ガイドライン |
-| [docs/git-rules.md](docs/git-rules.md) | コミット・ブランチ・PR ルール |
+各事実の正典は 1 つに決めてある。重複した記述を見つけたら、正典側を直す。
+
+| 文書 | 正典として扱う内容 |
+|------|------------------|
+| [docs/architecture.md](docs/architecture.md) | レイヤ、依存方向、生成フロー、責務境界の判断 |
+| [docs/api-design.md](docs/api-design.md) | 公開 API の契約、例外分類、値域定数の同期 |
+| [docs/coding-rules.md](docs/coding-rules.md) | レイヤ内での書き方（可視性、例外、panic 境界、画素操作） |
+| [docs/unit-test.md](docs/unit-test.md) | テストの置き場所、境界、書き方 |
+| [docs/setup.md](docs/setup.md) | ビルド・確認コマンド、`.so` の鮮度、CI との対応 |
+| [docs/review-rules.md](docs/review-rules.md) | 指摘分類、見る順序、検証の妥当性、出力フォーマット |
+| [docs/git-rules.md](docs/git-rules.md) | ブランチ、コミット、PR、バイナリ差分の扱い |
 
 詳細な判断は `docs/` 配下の文書を優先する。

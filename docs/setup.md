@@ -1,15 +1,18 @@
-# QrForge 開発環境セットアップ
+# ビルド・検証手順
+
+この文書は「何をインストールし、何を変更したらどのコマンドを実行するか」だけを扱う。レイヤ構成は [architecture.md](architecture.md)、実装ルールは [coding-rules.md](coding-rules.md)、テストの置き場所と方針は [unit-test.md](unit-test.md) を参照する。
 
 ## 前提ツール
 
-| ツール | 備考 |
-|--------|------|
-| Android Studio | 最新安定版 |
-| Android NDK | r27 以降 |
-| Rust toolchain | stable |
-| cargo-ndk | `cargo install cargo-ndk` |
+| ツール | 条件 | 備考 |
+|--------|------|------|
+| Android Studio | 最新安定版 | `compileSdk 36` / `minSdk 28` をビルドできること |
+| JDK | 17 | Gradle・CI ともに 17 |
+| Android NDK | r27 以降 | `ANDROID_NDK_HOME` / `ANDROID_NDK_ROOT` を設定する |
+| Rust toolchain | stable | `rustfmt`・`clippy` component 込み |
+| cargo-ndk | 任意 | `cargo install cargo-ndk` |
 
-## Rust target
+Rust target を追加する。
 
 ```powershell
 rustup target add aarch64-linux-android
@@ -17,23 +20,35 @@ rustup target add armv7-linux-androideabi
 rustup target add x86_64-linux-android
 ```
 
-`x86` を追加する場合のみ `rustup target add i686-linux-android` も実行する。
+32-bit x86 emulator を対象にする場合のみ `rustup target add i686-linux-android` を追加する。
 
-## Rust
+## 実行環境の禁止事項
+
+この 2 点は環境を壊すため、例外なく守る。
+
+- **cargo は PowerShell から実行する。** POSIX shell 経由だと Git 同梱の GNU `link` を MSVC の `link.exe` より先に解決し、リンクに失敗する。
+- **`cargo clean` を実行しない。** host 用ビルドスクリプトのキャッシュが消え、MSVC Build Tools が無い環境では以後 `cargo build`・`cargo clippy`・`cargo ndk` がすべて失敗し、復旧できない。
+
+## Rust の検証コマンド
 
 ```powershell
 cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --all-targets
 cargo build --manifest-path rust/qrforge-jni/Cargo.toml
 ```
 
-## Native library build
+`clippy` は CI で `-D warnings` 付きで強制されるため、warning が 1 件でも残っていると落ちる。ローカルでも必ず通す。
+
+## native library のビルド
+
+`ANDROID_NDK_HOME` / `ANDROID_NDK_ROOT` を設定したうえで実行する。
 
 ```powershell
 cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o qrforge/src/main/jniLibs build --release --manifest-path rust/qrforge-jni/Cargo.toml
 ```
 
-出力先:
+出力先は Android library module 配下で、repository にコミットする。
 
 ```text
 qrforge/src/main/jniLibs/arm64-v8a/libqrforge.so
@@ -41,29 +56,72 @@ qrforge/src/main/jniLibs/armeabi-v7a/libqrforge.so
 qrforge/src/main/jniLibs/x86_64/libqrforge.so
 ```
 
-## Android
+既定 ABI は `arm64-v8a`・`armeabi-v7a`・`x86_64` の 3 つ。`x86` は 32-bit x86 emulator が必要になった場合のみ `-t x86` を足して追加する。sample app 側の `app/src/main/jniLibs` には配置しない。
+
+## `.so` の鮮度（最も踏みやすい落とし穴）
+
+`rust/` 配下を変更した時点で、`qrforge/src/main/jniLibs/<abi>/libqrforge.so` は**変更前のビルドのまま**になる。Gradle は `.so` を自動生成しないため、この状態は静かに見逃される。
+
+- 再ビルドせずに `connectedDebugAndroidTest` を通しても、検証しているのは変更前の native library であり、変更内容は一切確認できていない。
+- 再ビルド後は差分で 3 ABI すべてが更新されたことを確認する。
+
+```powershell
+git diff --stat qrforge/src/main/jniLibs
+```
+
+- 再ビルドしていない場合は、Android 側のテストが緑でも「native 側は未検証」として報告する。
+
+## Android の検証コマンド
 
 ```powershell
 .\gradlew.bat :qrforge:assembleDebug
 .\gradlew.bat :qrforge:testDebugUnitTest
-.\gradlew.bat :app:assembleDebug
 .\gradlew.bat :qrforge:assembleDebugAndroidTest
 .\gradlew.bat :qrforge:connectedDebugAndroidTest
+.\gradlew.bat :app:assembleDebug
 ```
 
-`connectedDebugAndroidTest` は実機またはエミュレーターが必要。
+| タスク | 内容 |
+|--------|------|
+| `:qrforge:assembleDebug` | library module のビルド（AAR への `.so` 同梱を含む） |
+| `:qrforge:testDebugUnitTest` | JVM 上の UnitTest（JUnit5） |
+| `:qrforge:assembleDebugAndroidTest` | instrumented test の APK ビルドのみ。端末不要 |
+| `:qrforge:connectedDebugAndroidTest` | 実機・エミュレーター上で instrumented test 実行 |
+| `:app:assembleDebug` | sample app のビルド |
+
+`connectedDebugAndroidTest` は実機またはエミュレーターが必須。接続先が無い場合は黙って飛ばさず、「未実行」と理由を報告する。
+
+## instrumented test のクラス絞り込み
+
+`--tests` は `connectedDebugAndroidTest` では効かない。instrumentation runner の引数を使い、PowerShell では引数全体を quote する。
+
+```powershell
+.\gradlew.bat :qrforge:connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=com.appvoyager.qrforge.QrForgeInstrumentedTest"
+```
 
 ## 変更後の確認フロー
 
+変更したレイヤーに対応する行をすべて実行する。複数レイヤーに跨る変更は該当行を積み上げる。
+
 | 変更箇所 | 実行コマンド |
 |---------|------------|
-| Rust core | `cargo fmt --all -- --check`、`cargo test --workspace --all-targets` |
-| Rust JNI | `cargo build --manifest-path rust/qrforge-jni/Cargo.toml`、必要なら `.so` 再ビルド |
-| Kotlin wrapper | `.\gradlew.bat :qrforge:assembleDebug`、`.\gradlew.bat :qrforge:testDebugUnitTest` |
+| Rust core（`rust/qrforge-core/`） | `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets -- -D warnings`、`cargo test --workspace --all-targets` |
+| Rust JNI bridge（`rust/qrforge-jni/`） | 上記に加えて `cargo build --manifest-path rust/qrforge-jni/Cargo.toml` |
+| `rust/` を変更して Android 側も確認する | 上記に加えて `.so` 再ビルドと `git diff --stat qrforge/src/main/jniLibs`（「`.so` の鮮度」参照） |
+| Kotlin wrapper（`qrforge/`） | `.\gradlew.bat :qrforge:assembleDebug`、`.\gradlew.bat :qrforge:testDebugUnitTest` |
 | Instrumented test | `.\gradlew.bat :qrforge:assembleDebugAndroidTest`、可能なら `.\gradlew.bat :qrforge:connectedDebugAndroidTest` |
-| Sample app | `.\gradlew.bat :app:assembleDebug` |
+| Sample app（`app/`） | `.\gradlew.bat :app:assembleDebug` |
+| ABI 追加・削除 | `.so` 再ビルド、`abiFilters`、README・本文書・CI をまとめて更新 |
 | docs のみ | `git diff --stat` でコード変更が混ざっていないことを確認 |
 
-## ABI
+## CI ジョブとローカルコマンドの対応
 
-既定対応 ABI は `arm64-v8a`、`armeabi-v7a`、`x86_64`。`x86` は必要になった場合だけ追加する。
+workflow は `.github/workflows/ci.yml`。ローカルで先に潰しておくべき対応は次のとおり。
+
+| CI job | ローカルで相当するコマンド |
+|--------|--------------------------|
+| `rust` | `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets -- -D warnings`、`cargo test --workspace --all-targets`、`cargo build --manifest-path rust/qrforge-jni/Cargo.toml`、`cargo ndk`（3 ABI の `.so` 生成確認まで） |
+| `android` | `.\gradlew.bat :qrforge:testDebugUnitTest :qrforge:assembleDebug :qrforge:assembleDebugAndroidTest :app:assembleDebug` |
+| `instrumented` | `.so` 再ビルド後の `.\gradlew.bat :qrforge:connectedDebugAndroidTest`（CI は API 34・`x86_64` emulator） |
+
+`instrumented` job は CI 側で `.so` を再ビルドしてから実行する。コミット済みの `.so` が古いままでも CI は通り得るので、ローカルでの再ビルドと差分確認を省略しない。

@@ -1,33 +1,46 @@
-# UnitTest ルール
+# テスト方針
 
-テストは公開 API とレイヤ境界の振る舞いを安定させるために書く。実装詳細を過剰に固定しない。
+テストをどこに置き、何を検証し、何を検証しないかの決まり。実行コマンドは [setup.md](setup.md)、
+レイヤの責務は [architecture.md](architecture.md) を見る。
 
-## 基本方針
+テストは公開 API とレイヤ境界の振る舞いを固定するために書く。実装詳細を過剰に固定しない。
 
-- JVM UnitTest は JUnit Jupiter。
-- 1 テスト関数は 1 つの主要な振る舞いだけを検証する。
-- 主要 assert は 1 つにする。
-- Kotlin テストには `Arrange`、`Act`、`Assert` コメントを置く。
-- 例外検証は `Act & Assert` としてまとめてよい。
-- テスト名は英語で、期待する振る舞いが分かる名前にする。
-- helper に主要 assert を隠さない。
+## 3 つの置き場所
 
-## 配置
+| 置き場所 | 実行環境 | 検証すること |
+|---------|---------|-------------|
+| `rust/qrforge-core/tests/` | `cargo test` | QR 生成、PNG bytes、描画結果、option 検証、core error |
+| `qrforge/src/test/` | JVM（JUnit Jupiter） | 入力検証、option model、例外変換前の分岐 |
+| `qrforge/src/androidTest/` | 実機・エミュレーター | native library load、JNI 呼び出し、`Bitmap` decode |
 
-| 対象 | 配置 | 検証すること |
-|------|------|--------------|
-| Rust core | `rust/qrforge-core/tests/` | QR 生成、PNG bytes、option validation、core error |
-| Kotlin UnitTest | `qrforge/src/test/` | JVM 上で可能な入力検証、option model、例外変換前の分岐 |
-| Instrumented Test | `qrforge/src/androidTest/` | native library load、JNI 呼び出し、Bitmap decode |
+### どこに置くか決める順序
+
+1. **native library か Android SDK が要るか** → 要るなら `androidTest`
+2. 要らないとして、**QR・PNG の中身を検証するか** → するなら Rust core test
+3. 要らないとして、**Kotlin wrapper の振る舞いか** → そうなら JVM UnitTest
+
+同じ振る舞いを 2 か所で検証しない。下位で検証できるものは下位に置く。
 
 ## 境界
 
-- Rust core のテストで Android / JNI / Kotlin を検証しない。
+- Rust core のテストで Android・JNI・Kotlin を検証しない。
 - JNI bridge のテストで QR 生成アルゴリズムの詳細を検証しない。
 - Kotlin wrapper のテストで JNI exported symbol を public API として扱わない。
 - Android 実行環境が必要な確認を JVM UnitTest に押し込まない。
+- **native library が無いことによる例外を、正常系の証拠として使わない。**
 
-## Kotlin 例
+最後の項目が最も踏みやすい。JVM UnitTest では `.so` を解決できないため、「入力が受理されたら
+`NativeLibraryUnavailable` になる」ことを利用して正常系を書けてしまう。これは native library が
+ロードできる状況になった瞬間に落ちる。入力が受理されることを確かめたいなら入力検証そのものを
+直接テストし（`QrForge.requireNonBlankText`）、native 経路は Instrumented Test に任せる。
+
+## 書き方
+
+- テスト名は英語で、期待する振る舞いが読み取れる名前にする。
+- 1 テスト関数は 1 つの振る舞いだけを検証する。主要 assert は 1 つ。
+- Kotlin テストには `Arrange`、`Act`、`Assert` コメントを置く。例外検証は `Act & Assert` にまとめてよい。
+- 主要 assert を helper に隠さない。
+- 出力寸法は `>=` で検証する。`size` は最小値であって出力寸法ではない（[api-design.md](api-design.md)）。
 
 ```kotlin
 @Test
@@ -43,15 +56,33 @@ fun qrOptionsUsesDefaultSize() {
 }
 ```
 
-## 確認コマンド
+## 各層の作法
 
-```powershell
-cargo fmt --all -- --check
-cargo test --workspace --all-targets
-.\gradlew.bat :qrforge:testDebugUnitTest
-.\gradlew.bat :qrforge:assembleDebugAndroidTest
-.\gradlew.bat :qrforge:connectedDebugAndroidTest
-.\gradlew.bat :app:assembleDebug
-```
+### Rust core test
 
-`connectedDebugAndroidTest` は実機またはエミュレーターが必要。実行できない場合は理由を報告する。
+`rust/qrforge-core/tests/` は integration test なので、crate 本体の `[dependencies]` を参照できない。
+生成 PNG のピクセルを検証するなど追加の crate が要る場合は、`[dev-dependencies]` に本体と同じ
+version・features で追加する。
+
+描画位置や塗り潰し範囲のように、PNG ヘッダと寸法だけでは検出できない性質はここで検証する。
+Instrumented Test では担保しにくい。
+
+### JVM UnitTest
+
+native library に依存しない範囲に限る。テストのためだけに `internal` を広げた関数は、その旨が
+実装側にコメントされていること（[coding-rules.md](coding-rules.md)）。
+
+### Instrumented Test
+
+共通定数は `qrforge/src/androidTest/java/com/appvoyager/qrforge/QrForgeTestFixtures.kt` に置く。
+assert は置かない。
+
+実行する前に、直前の `rust/` 変更に対して `.so` を再ビルドしたか確認する。していなければ検証
+対象は変更前の native library になる（[setup.md](setup.md)）。
+
+## 報告
+
+- 実行したコマンドと結果（件数を含む）を書く。
+- 実行していないテストを「通った」と書かない。
+- 環境要因で実行できなかったものは、理由とともに未実施として書く。
+- 新しく書いたテストが一度も実行できていない場合は、その旨を明記する。

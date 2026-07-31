@@ -95,7 +95,8 @@ rustup target add aarch64-linux-android
 rustup target add armv7-linux-androideabi
 rustup target add x86_64-linux-android
 cargo fmt --all -- --check
-cargo test --manifest-path rust/qrforge-core/Cargo.toml
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace --all-targets
 cargo build --manifest-path rust/qrforge-jni/Cargo.toml
 cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o qrforge/src/main/jniLibs build --release --manifest-path rust/qrforge-jni/Cargo.toml
 .\gradlew.bat :qrforge:testDebugUnitTest
@@ -114,30 +115,27 @@ cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -t x86 -o qrforge/src/main/jniLi
 
 ## CI
 
-GitHub Actions で Rust と Android の基本検証を実行します。
+GitHub Actions で 3 つの job を実行します。workflow は `.github/workflows/ci.yml` にあります。
 
-- Rust format check
-- Rust core unit test
-- Rust JNI crate build
-- `arm64-v8a` / `armeabi-v7a` / `x86_64` native library build
-- Android library unit test
-- Android library debug build
-- sample app debug build
+| Job | 内容 |
+|-----|------|
+| `rust` | format check、clippy (`-D warnings`)、workspace test、JNI crate build、3 ABI の native library build |
+| `android` | library unit test、library debug build、androidTest APK build、sample app debug build |
+| `instrumented` | native library を再ビルドし、API 34 の `x86_64` emulator 上で instrumented test を実行 |
 
-workflow は `.github/workflows/ci.yml` にあります。
+ローカルで対応するコマンドは [docs/setup.md](docs/setup.md) の「CI ジョブとローカルコマンドの対応」を参照してください。
 
 ## 文書
 
 | 文書 | 内容 |
 |------|------|
-| [docs/architecture.md](docs/architecture.md) | レイヤ構成・責務・依存方向 |
-| [docs/api-design.md](docs/api-design.md) | 公開 API・例外・呼び出し例 |
+| [docs/architecture.md](docs/architecture.md) | レイヤ構成・依存方向・生成フロー |
+| [docs/api-design.md](docs/api-design.md) | 公開 API の契約・例外分類・値域定数 |
 | [docs/coding-rules.md](docs/coding-rules.md) | Kotlin・Rust・JNI の実装ルール |
-| [docs/unit-test.md](docs/unit-test.md) | UnitTest・Instrumented Test の作成ルール |
-| [docs/setup.md](docs/setup.md) | ビルド・テスト実行手順 |
-| [docs/review-rules.md](docs/review-rules.md) | レビュー指摘分類・フォーマット |
-| [docs/sub-agent-guidelines.md](docs/sub-agent-guidelines.md) | サブエージェント運用ガイドライン |
-| [docs/git-rules.md](docs/git-rules.md) | コミット・ブランチ・PR ルール |
+| [docs/unit-test.md](docs/unit-test.md) | テストの置き場所・境界・書き方 |
+| [docs/setup.md](docs/setup.md) | ビルド・確認コマンド・CI との対応 |
+| [docs/review-rules.md](docs/review-rules.md) | レビュー分類・見る順序・出力フォーマット |
+| [docs/git-rules.md](docs/git-rules.md) | ブランチ・コミット・PR・バイナリ差分の扱い |
 
 ## 公開状態
 
