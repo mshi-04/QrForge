@@ -24,6 +24,9 @@ struct RenderedQrImage {
     pixels: Vec<u8>,
 }
 
+/// Options controlling the generated QR image.
+///
+/// See [`generate_qr_png`] for a complete usage example.
 pub struct QrOptions {
     /// Output image size in pixels (applied to both width and height; actual output may be larger
     /// due to QR module boundary rounding).
@@ -41,6 +44,30 @@ impl Default for QrOptions {
     }
 }
 
+/// Generates a QR code as PNG bytes.
+///
+/// # Examples
+///
+/// ```
+/// use qrforge_core::{generate_qr_png, QrOptions};
+/// # use qrforge_core::QrGenerationError;
+///
+/// # fn main() -> Result<(), QrGenerationError> {
+/// let options = QrOptions {
+///     size: 256,
+///     margin: 4,
+/// };
+/// let png: Vec<u8> = generate_qr_png("https://example.com", &options)?;
+///
+/// assert!(!png.is_empty());
+/// # Ok(())
+/// # }
+/// ```
+///
+/// # Errors
+///
+/// Returns [`QrGenerationError`] when the input is blank, the options are outside their allowed
+/// ranges, or QR/PNG encoding fails.
 pub fn generate_qr_png(text: &str, options: &QrOptions) -> Result<Vec<u8>, QrGenerationError> {
     if text.chars().all(is_contract_whitespace) {
         return Err(QrGenerationError::BlankInput);

@@ -5,21 +5,26 @@
 
 テストは公開 API とレイヤ境界の振る舞いを固定するために書く。実装詳細を過剰に固定しない。
 
-## 3 つの置き場所
+## テストの置き場所
 
 | 置き場所 | 実行環境 | 検証すること |
 |---------|---------|-------------|
-| `rust/qrforge-core/tests/` | `cargo test` | QR 生成、PNG bytes、描画結果、option 検証、core error |
+| `rust/qrforge-core/src/` の対象モジュール内 | `cargo test` | 公開 API 経由では条件を作れない private 実装（現状 0 件） |
+| `rust/qrforge-core/tests/` | `cargo test` | 公開 API 経由の QR 生成、PNG bytes、描画結果、option 検証、core error |
+| Rust 公開 API の rustdoc | `cargo test --doc` | 利用例がコンパイル・実行できること |
 | `qrforge/src/test/` | JVM（JUnit Jupiter） | 入力検証、option model、例外変換前の分岐 |
 | `qrforge/src/androidTest/` | 実機・エミュレーター | native library load、JNI 呼び出し、`Bitmap` decode |
 
 ### どこに置くか決める順序
 
 1. **native library か Android SDK が要るか** → 要るなら `androidTest`
-2. 要らないとして、**QR・PNG の中身を検証するか** → するなら Rust core test
-3. 要らないとして、**Kotlin wrapper の振る舞いか** → そうなら JVM UnitTest
+2. 要らないとして、**QR・PNG の中身を公開 API 経由で検証するか** → するなら Rust integration test
+3. **公開 API 経由では条件を作れない private 実装か** → そうなら対象モジュール内の Rust Unit Test
+4. **Rust 公開 API の利用例か** → そうなら Documentation Test
+5. **Kotlin wrapper の振る舞いか** → そうなら JVM UnitTest
 
-同じ振る舞いを 2 か所で検証しない。下位で検証できるものは下位に置く。
+同じ振る舞いを複数の場所で重複して検証しない。Documentation Test は利用例が実際に動くこと、
+integration test は公開 API の詳細な契約を担う。下位で検証できるものは下位に置く。
 
 ## 境界
 
@@ -36,11 +41,57 @@
 
 ## 書き方
 
+規則は出典で分けて書く。公式文書に根拠があるものと、公式に規定がなくここで決めたものとでは、
+後から見直すときに動かしてよい範囲が違う。
+
 - テスト名は英語で、期待する振る舞いが読み取れる名前にする。
-- 1 テスト関数は 1 つの振る舞いだけを検証する。主要 assert は 1 つ。
-- Kotlin テストには `Arrange`、`Act`、`Assert` コメントを置く。例外検証は `Act & Assert` にまとめてよい。
-- 主要 assert を helper に隠さない。
 - 出力寸法は `>=` で検証する。`size` は最小値であって出力寸法ではない（[api-design.md](api-design.md)）。
+
+### Rust（公式に根拠がある）
+
+出典は The Rust Programming Language ch.11 と Rust API Guidelines。後者は「mandate ではない」と
+自ら書いている推奨チェックリストなので、Book より弱い根拠として扱う。
+
+- setup、検証対象の実行、結果の assert という流れで構成する（Book ch.11-01）。
+- テストは並列・順不同で実行できるようにし、共有可変状態や実行順へ依存させない（Book ch.11-02）。
+- 等値検証には `assert_eq!` / `assert_ne!` を使う。失敗時に両辺の値を印字するため、
+  `assert!(a == b)` より原因が分かる（Book ch.11-01）。
+- 正常系のテストは `-> Result<(), QrGenerationError>` を返し、`?` でエラーを伝播させる
+  （Book ch.11-01）。エラーになること自体を検証するテストは `?` にできないので `expect_err` を使う。
+- 利用例は公開 API の rustdoc に `# Examples` として書き、`unwrap` / `expect` ではなく `?` を使う。
+  例のコードはそのままコピーされるため（API Guidelines C-EXAMPLE / C-QUESTION-MARK）。
+- 返し得るエラーは `# Errors` に書く（API Guidelines C-FAILURE）。
+- format は rustfmt のデフォルト（公式 Style Guide）に従う。
+
+`matches!` は真偽値を返すだけなので、`assert!(matches!(...))` の失敗出力に実際の値は出ない。
+error variant を検証するときは失敗メッセージを添える。標準の `assert_matches!` は現状 nightly のみ。
+
+```rust
+assert!(
+    matches!(error, QrGenerationError::BlankInput),
+    "unexpected error: {error}"
+);
+```
+
+### Rust（本リポジトリの判断）
+
+- `Arrange`、`Act`、`Assert` の定型ラベルは置かない。必要なら空行で処理のまとまりを示す。
+- 境界値の根拠や依存ライブラリとの契約差など、「なぜ」を説明するコメントだけを残す。
+- 1 テスト関数は 1 つの振る舞いだけを検証する。同じ振る舞いを十分に表すためなら複数の
+  assert を許可する。
+- `test_` のような定型的な接頭辞に頼らず、期待する振る舞いをテスト名で表す。Book と std の例も
+  接頭辞を使っていない。
+- 独自の `rustfmt.toml` は追加しない。
+
+### Kotlin / JUnit（本リポジトリの判断）
+
+`Arrange` / `Act` / `Assert` は JUnit の公式推奨ではない。JUnit User Guide は annotation と実行
+モデルの reference で、テスト本体の構造や命名規約を定めていない。3A パターン自体は xUnit 系の
+一般的なテスト設計論で、ここでの採用は本リポジトリの判断。
+
+- 1 テスト関数は 1 つの振る舞いだけを検証する。主要 assert は 1 つ。
+- `Arrange`、`Act`、`Assert` コメントを置く。例外検証は `Act & Assert` にまとめてよい。
+- 主要 assert を helper に隠さない。
 
 ```kotlin
 @Test
@@ -59,6 +110,21 @@ fun qrOptionsUsesDefaultSize() {
 ## 各層の作法
 
 ### Rust core test
+
+公開 API は crate 外の利用者と同じ条件で検証するため、`rust/qrforge-core/tests/` の integration test
+に置く（Book ch.11-03）。利用例は公開 API の rustdoc に `# Examples` として記述し、
+Documentation Test にする。
+
+private 実装を直接検証する Unit Test は、対象 source file 内の `#[cfg(test)] mod tests` に置く
+（Book ch.11-03）。ただしここに置いてよいのは、**公開 API 経由では入力条件を作れない場合に限る**。
+`validate_options` のように公開 API から到達できるものを個別にテストすると、実装詳細を固定して
+リファクタリングを妨げる。現状の `qrforge-core` に該当する private 実装はなく、in-src Unit Test は
+0 件。
+
+`qrforge-core` は crate 先頭で `unwrap` / `expect` を deny している（[coding-rules.md](coding-rules.md)）。
+この attribute は同じ crate に属する `#[cfg(test)] mod tests` にも効くため、repository root の
+`clippy.toml` で `allow-unwrap-in-tests` と `allow-expect-in-tests` を有効にしている。production code
+での禁止はそのまま維持される。`tests/` の integration test は別 crate なので元から対象外。
 
 `rust/qrforge-core/tests/` の integration test は別 crate としてコンパイルされるが、package の
 `[dependencies]` と `[dev-dependencies]` の両方を利用できる。production code でも使う crate を

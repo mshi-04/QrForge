@@ -1,0 +1,4 @@
+# qrforge-core は crate 先頭で unwrap / expect を deny しているが、この attribute は
+# #[cfg(test)] mod tests にもそのまま効く。test 内だけ許可し、production code の禁止は維持する。
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
