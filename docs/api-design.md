@@ -137,3 +137,15 @@ Kotlin 側の `require` メッセージも同様に定数を埋め込む。
   constructor を残すか、既存 constructor を変えず factory など別の入口を追加する。
 - 非同期 API は必要性が確認されてから追加する。今は同期のみ。
 - 値域を広げる変更は互換だが、狭める変更は非互換として扱う。
+
+### 互換性の機械的検査
+
+この節の契約は `scripts/check_public_api.py` が検査する。release AAR の bytecode から抽出した
+公開 API を、コミット済みの `qrforge/api/qrforge.api` と比較し、差分があれば落ちる。CI の
+`android` job でも実行する。手順とコマンドは [setup.md](setup.md) の「公開 API の互換性確認」。
+
+`internal` package と、Kotlin が name mangling する `internal` member・`$default` overload は
+検査対象外。内部実装の変更では発火しない。
+
+snapshot は差分を承認するための記録であって、互換性を壊してよい根拠ではない。更新する前に、
+その変更がこの節のどの項目に当たるかを判断する。

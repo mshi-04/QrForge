@@ -1,0 +1,32 @@
+# cargo-deny の設定。CI の Rust Audit job で `cargo deny check` を実行する。
+# 全設定項目は https://embarkstudios.github.io/cargo-deny/checks/cfg.html
+
+[advisories]
+ignore = []
+
+[licenses]
+# 依存ツリーに実在する permissive license のみを許可する。
+# 新しい license が増えたら、採用可否を判断してからここに足す。
+allow = [
+    "0BSD",
+    "Apache-2.0",
+    "MIT",
+    "Unicode-3.0",
+    "Unlicense",
+    "Zlib",
+]
+
+[licenses.private]
+# qrforge-core / qrforge-jni は crates.io へ publish しない。
+ignore = true
+
+[bans]
+# 重複 version は transitive 依存の都合で発生するため、失敗させず可視化だけする。
+multiple-versions = "warn"
+wildcards = "deny"
+allow-wildcard-paths = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

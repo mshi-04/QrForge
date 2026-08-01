@@ -14,6 +14,10 @@ on:
       - synchronize
       - reopened
       - ready_for_review
+  schedule:
+    # 毎週月曜 06:00 JST。コード変更なしに公開される advisory を検出する。
+    - cron: "0 21 * * 0"
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -24,7 +28,7 @@ permissions:
 
 jobs:
   consistency:
-    name: Repository Consistency
+    name: Consistency Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -36,7 +40,7 @@ jobs:
         run: python3 scripts/check_repo_consistency.py
 
   rust:
-    name: Rust
+    name: Rust Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -86,8 +90,54 @@ jobs:
           test -f "$RUNNER_TEMP/qrforge-jniLibs/armeabi-v7a/libqrforge.so"
           test -f "$RUNNER_TEMP/qrforge-jniLibs/x86_64/libqrforge.so"
 
+  rust-audit:
+    name: Rust Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Audit Rust dependencies
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          manifest-path: ./Cargo.toml
+          command: check
+          arguments: --all-features
+
+  kotlin-lint:
+    name: Kotlin Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: true
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      # lifecycle task ではなく個別の task path を指定する。built-in Kotlin の source set
+      # 検出が壊れた場合に、0 件 lint して成功するのではなく task not found で落とすため。
+      - name: Check Kotlin format and style
+        run: ./gradlew :qrforge:ktlintCheck :app:ktlintCheck ktlintKotlinScriptCheck --no-daemon
+
   android:
-    name: Android
+    name: Android Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -109,13 +159,29 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
+      - name: Check public API compatibility
+        run: |
+          ./gradlew :qrforge:assembleRelease --no-daemon
+          python3 scripts/check_public_api.py
+
       - name: Run Android checks
         run: ./gradlew :qrforge:testDebugUnitTest :qrforge:assembleDebug :qrforge:assembleDebugAndroidTest :app:assembleDebug --no-daemon
 
   instrumented:
-    name: Instrumented Test
+    name: Instrumented Test (API ${{ matrix.api-level }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    # 週次実行で emulator を 2 本起動する価値は薄い。
+    if: github.event_name != 'schedule'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # minSdk。Google APIs を使わないため default image で足りる。
+          - api-level: 28
+            target: default
+          - api-level: 34
+            target: google_apis
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -148,7 +214,8 @@ jobs:
       - name: Run instrumented tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
+          api-level: ${{ matrix.api-level }}
           arch: x86_64
-          target: google_apis
+          target: ${{ matrix.target }}
+          disable-animations: true
           script: ./gradlew :qrforge:connectedDebugAndroidTest --no-daemon

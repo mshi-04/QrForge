@@ -11,7 +11,10 @@
 | Android NDK | r27 以降 | `ANDROID_NDK_HOME` / `ANDROID_NDK_ROOT` を設定する |
 | Rust toolchain | stable | `rustfmt`・`clippy` component 込み |
 | cargo-ndk | native library ビルド時は必須 | `cargo install cargo-ndk` |
-| Python | 3.10 以降 | repository 整合性 checker に使用 |
+| cargo-deny | 依存監査をローカルで再現する場合 | `cargo install cargo-deny --locked` |
+| Python | 3.10 以降 | repository 整合性 checker、公開 API checker に使用 |
+
+ktlint は Gradle plugin として導入済みのため、個別インストールは不要。
 
 Rust target を追加する。
 
@@ -97,6 +100,7 @@ CI の `rust` job は現在の source から 3 ABI を一時出力へビルド�
 .\gradlew.bat :qrforge:assembleDebugAndroidTest
 .\gradlew.bat :qrforge:connectedDebugAndroidTest
 .\gradlew.bat :app:assembleDebug
+.\gradlew.bat :qrforge:ktlintCheck :app:ktlintCheck ktlintKotlinScriptCheck
 ```
 
 | タスク | 内容 |
@@ -106,6 +110,28 @@ CI の `rust` job は現在の source から 3 ABI を一時出力へビルド�
 | `:qrforge:assembleDebugAndroidTest` | instrumented test の APK ビルドのみ。端末不要 |
 | `:qrforge:connectedDebugAndroidTest` | 実機・エミュレーター上で instrumented test 実行 |
 | `:app:assembleDebug` | sample app のビルド |
+| `ktlintCheck` / `ktlintKotlinScriptCheck` | Kotlin source と build script の format / style 検査 |
+
+## 公開 API の互換性確認
+
+`docs/api-design.md` の互換性契約を機械的に検査する。release AAR の bytecode から公開 API を
+抽出し、コミット済みの `qrforge/api/qrforge.api` と比較する。
+
+```powershell
+.\gradlew.bat :qrforge:assembleRelease
+python scripts/check_public_api.py
+```
+
+`internal` package と、Kotlin が name mangling する `internal` member・`$default` overload は
+比較対象から外している。内部リファクタでは発火せず、公開 API の descriptor が変わったときだけ
+落ちる。意図した変更なら snapshot を更新してコミットする。
+
+```powershell
+python scripts/check_public_api.py --update
+```
+
+更新前に、その変更が `api-design.md` の「互換性」節に照らして許容されるかを必ず判断する。
+snapshot の更新は互換性を壊してよい理由にはならない。
 
 `connectedDebugAndroidTest` は実機またはエミュレーターが必須。接続先が無い場合は黙って飛ばさず、「未実行」と理由を報告する。
 
@@ -127,6 +153,9 @@ CI の `rust` job は現在の source から 3 ABI を一時出力へビルド�
 | Rust JNI bridge（`rust/qrforge-jni/`） | 上記に加えて `cargo build --manifest-path rust/qrforge-jni/Cargo.toml` |
 | `rust/` を変更して Android 側も確認する | 上記に加えて `.so` 再ビルドと `git diff --stat qrforge/src/main/jniLibs`（「`.so` の鮮度」参照） |
 | Kotlin wrapper（`qrforge/`） | `.\gradlew.bat :qrforge:assembleDebug`、`.\gradlew.bat :qrforge:testDebugUnitTest` |
+| Kotlin を変更した（レイヤ問わず） | `.\gradlew.bat :qrforge:ktlintCheck :app:ktlintCheck ktlintKotlinScriptCheck` |
+| 公開 API（`QrGenerator`・`QrOptions`・`QrGenerationException`） | 上記に加えて「公開 API の互換性確認」の 2 コマンド |
+| Rust の依存を追加・更新した | `cargo deny check` |
 | Instrumented test | `.\gradlew.bat :qrforge:assembleDebugAndroidTest`、可能なら `.\gradlew.bat :qrforge:connectedDebugAndroidTest` |
 | Sample app（`app/`） | `.\gradlew.bat :app:assembleDebug` |
 | ABI 追加・削除 | `.so` 再ビルド、`abiFilters`、README・本文書・CI をまとめて更新 |
@@ -155,8 +184,16 @@ workflow は `.github/workflows/ci.yml`。ローカルで先に潰しておく�
 |--------|--------------------------|
 | `consistency` | `python scripts/check_repo_consistency.py` |
 | `rust` | `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets -- -D warnings`、`cargo test --workspace --all-targets`、`cargo build --manifest-path rust/qrforge-jni/Cargo.toml`、`cargo ndk`（3 ABI の `.so` 生成確認まで） |
-| `android` | `.\gradlew.bat :qrforge:testDebugUnitTest :qrforge:assembleDebug :qrforge:assembleDebugAndroidTest :app:assembleDebug` |
-| `instrumented` | repository にコミット済みの `x86_64` `.so` を使う `.\gradlew.bat :qrforge:connectedDebugAndroidTest`（CI は API 34 emulator） |
+| `rust-audit` | `cargo deny check` |
+| `kotlin-lint` | `.\gradlew.bat :qrforge:ktlintCheck :app:ktlintCheck ktlintKotlinScriptCheck` |
+| `android` | `.\gradlew.bat :qrforge:assembleRelease` と `python scripts/check_public_api.py`、`.\gradlew.bat :qrforge:testDebugUnitTest :qrforge:assembleDebug :qrforge:assembleDebugAndroidTest :app:assembleDebug` |
+| `instrumented` | repository にコミット済みの `x86_64` `.so` を使う `.\gradlew.bat :qrforge:connectedDebugAndroidTest`（CI は API 28 / 34 emulator） |
+
+`kotlin-lint` の指摘は `.\gradlew.bat ktlintFormat` で自動修正できる。code style と適用しない
+rule は `.editorconfig` に置く。
+
+`rust-audit` は push・PR に加えて週次でも実行する。新しい advisory はコード変更なしに公開
+されるため。GitHub は repository が 60 日間 inactive だと scheduled workflow を自動停止する。
 
 `rust` job と `instrumented` job は別の成果物を検証する。コミット済みの `.so` が古いままでも
 両方が通り得るため、ローカルでの再ビルドと差分確認を省略しない。

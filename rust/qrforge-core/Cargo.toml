@@ -2,6 +2,7 @@
 name = "qrforge-core"
 version = "0.1.0"
 edition = "2021"
+publish = false
 
 [dependencies]
 # qrcode の "image" feature は render::image 用で、本 crate は raw pixel buffer を直接

@@ -118,14 +118,19 @@ cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -t x86 -o qrforge/src/main/jniLi
 
 ## CI
 
-GitHub Actions で 4 つの job を実行します。workflow は `.github/workflows/ci.yml` にあります。
+GitHub Actions で 6 つの job を実行します。workflow は `.github/workflows/ci.yml` にあります。
 
 | Job | 内容 |
 |-----|------|
-| `consistency` | 文書リンク、Codex / Claude Code の skill 本文、ABI 設定の整合性確認 |
+| `consistency` | 文書の相対リンクと、`abiFilters` / `jniLibs` の ABI 設定の整合性確認 |
 | `rust` | format check、clippy (`-D warnings`)、workspace test、JNI crate build、3 ABI の native library build |
-| `android` | library unit test、library debug build、androidTest APK build、sample app debug build |
-| `instrumented` | repository にコミット済みの `x86_64` native library を使い、API 34 emulator 上で instrumented test を実行 |
+| `rust-audit` | `cargo deny` による依存の脆弱性 advisory、license、重複 version、取得元の検査 |
+| `kotlin-lint` | ktlint による Kotlin source と build script の format / style 検査 |
+| `android` | 公開 API の互換性確認、library unit test、library debug build、androidTest APK build、sample app debug build |
+| `instrumented` | repository にコミット済みの `x86_64` native library を使い、API 28 / 34 emulator 上で instrumented test を実行 |
+
+`rust-audit` は push・PR に加えて毎週月曜 06:00 JST にも実行します。新しい advisory は
+コード変更なしに公開されるためです。`instrumented` は週次実行では起動しません。
 
 `rust` job は現在の Rust source から 3 ABI を一時出力へビルドできることを確認する。一方、
 `instrumented` job は配布対象としてコミットされた `x86_64` の `.so` を確認する。両方が通っても
