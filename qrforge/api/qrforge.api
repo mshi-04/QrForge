@@ -1,21 +1,16 @@
 public abstract class com.appvoyager.qrforge.QrGenerationException extends java.lang.RuntimeException {
-  public com.appvoyager.qrforge.QrGenerationException(java.lang.String, java.lang.Throwable, int, kotlin.jvm.internal.DefaultConstructorMarker);
-  public com.appvoyager.qrforge.QrGenerationException(java.lang.String, java.lang.Throwable, kotlin.jvm.internal.DefaultConstructorMarker);
 }
 
 public final class com.appvoyager.qrforge.QrGenerationException$DecodeFailed extends com.appvoyager.qrforge.QrGenerationException {
   public com.appvoyager.qrforge.QrGenerationException$DecodeFailed(java.lang.String, java.lang.Throwable);
-  public com.appvoyager.qrforge.QrGenerationException$DecodeFailed(java.lang.String, java.lang.Throwable, int, kotlin.jvm.internal.DefaultConstructorMarker);
 }
 
 public final class com.appvoyager.qrforge.QrGenerationException$GenerationFailed extends com.appvoyager.qrforge.QrGenerationException {
   public com.appvoyager.qrforge.QrGenerationException$GenerationFailed(java.lang.String, java.lang.Throwable);
-  public com.appvoyager.qrforge.QrGenerationException$GenerationFailed(java.lang.String, java.lang.Throwable, int, kotlin.jvm.internal.DefaultConstructorMarker);
 }
 
 public final class com.appvoyager.qrforge.QrGenerationException$NativeLibraryUnavailable extends com.appvoyager.qrforge.QrGenerationException {
   public com.appvoyager.qrforge.QrGenerationException$NativeLibraryUnavailable(java.lang.String, java.lang.Throwable);
-  public com.appvoyager.qrforge.QrGenerationException$NativeLibraryUnavailable(java.lang.String, java.lang.Throwable, int, kotlin.jvm.internal.DefaultConstructorMarker);
 }
 
 public final class com.appvoyager.qrforge.QrGenerator {
@@ -30,7 +25,6 @@ public final class com.appvoyager.qrforge.QrOptions {
   public boolean equals(java.lang.Object);
   public com.appvoyager.qrforge.QrOptions();
   public com.appvoyager.qrforge.QrOptions(int, int);
-  public com.appvoyager.qrforge.QrOptions(int, int, int, kotlin.jvm.internal.DefaultConstructorMarker);
   public final com.appvoyager.qrforge.QrOptions copy(int, int);
   public final int component1();
   public final int component2();
@@ -48,5 +42,4 @@ public final class com.appvoyager.qrforge.QrOptions {
 }
 
 public final class com.appvoyager.qrforge.QrOptions$Companion {
-  public com.appvoyager.qrforge.QrOptions$Companion(kotlin.jvm.internal.DefaultConstructorMarker);
 }

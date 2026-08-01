@@ -3,6 +3,10 @@ plugins {
     alias(libs.plugins.ktlint)
 }
 
+ktlint {
+    version.set(libs.versions.ktlint.cli.get())
+}
+
 android {
     namespace = "com.appvoyager.qrforge.sample"
     compileSdk {

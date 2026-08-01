@@ -18,6 +18,7 @@ SNAPSHOT_PATH = REPOSITORY_ROOT / "qrforge" / "api" / "qrforge.api"
 ASSEMBLE_COMMAND = "gradlew :qrforge:assembleRelease"
 INTERNAL_PACKAGE_PREFIX = "com.appvoyager.qrforge.internal."
 SOURCE_FILE_MARKER = "Compiled from "
+DEFAULT_CONSTRUCTOR_MARKER = "kotlin.jvm.internal.DefaultConstructorMarker"
 
 
 def resolve_javap() -> str:
@@ -76,13 +77,18 @@ def declared_type_name(header: str) -> str | None:
 
 
 def is_public_member(line: str, owner: str | None) -> bool:
-    """Reject Kotlin's name-mangled members.
+    """Reject the members Kotlin synthesizes rather than declares.
 
-    `internal` members and `$default` overloads carry a `$` in their own name. Neither is
-    part of the documented contract, and both move on internal refactors that
-    docs/api-design.md explicitly allows. A nested type's constructor also carries a `$`,
-    but that one comes from the enclosing type, so it is compared against the owner first.
+    `internal` members and `$default` overloads carry a `$` in their own name. A
+    constructor carrying `DefaultConstructorMarker` is the constructor-side counterpart of
+    a `$default` overload. None of them is part of the documented contract, and all move on
+    internal refactors that docs/api-design.md explicitly allows. A nested type's
+    constructor also carries a `$`, but that one comes from the enclosing type, so it is
+    compared against the owner first.
     """
+    if DEFAULT_CONSTRUCTOR_MARKER in line:
+        return False
+
     head = line.split("(", maxsplit=1)[0].split("=", maxsplit=1)[0].strip().rstrip(";").strip()
     tokens = head.split()
     if not tokens:
