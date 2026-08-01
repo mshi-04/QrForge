@@ -126,7 +126,9 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
         with:
-          cache-read-only: true
+          # cache は develop でだけ生成し、他の branch は読むだけにする。feature branch は
+          # develop 向け PR の base branch cache として、これを使い回す。
+          cache-read-only: ${{ github.ref != 'refs/heads/develop' }}
 
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
@@ -154,7 +156,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
         with:
-          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
+          cache-read-only: ${{ github.ref != 'refs/heads/develop' }}
 
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
@@ -200,7 +202,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
         with:
-          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
+          cache-read-only: ${{ github.ref != 'refs/heads/develop' }}
 
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
