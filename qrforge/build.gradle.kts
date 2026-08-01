@@ -2,6 +2,7 @@ import org.gradle.api.tasks.testing.Test
 
 plugins {
     alias(libs.plugins.android.library)
+    alias(libs.plugins.ktlint)
 }
 
 android {

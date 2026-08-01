@@ -1,0 +1,14 @@
+root = true
+
+[*.{kt,kts}]
+ktlint_code_style = android_studio
+max_line_length = 120
+indent_size = 4
+indent_style = space
+insert_final_newline = true
+ij_kotlin_allow_trailing_comma = true
+ij_kotlin_allow_trailing_comma_on_call_site = true
+
+# 既存の「1 行 1 引数 + trailing comma」を 1 行へ潰さない。
+ktlint_standard_class-signature = disabled
+ktlint_standard_function-signature = disabled
