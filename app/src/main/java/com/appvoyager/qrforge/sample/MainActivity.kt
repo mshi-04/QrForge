@@ -2,8 +2,8 @@ package com.appvoyager.qrforge.sample
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import com.appvoyager.qrforge.QrGenerator
 import com.appvoyager.qrforge.QrGenerationException
+import com.appvoyager.qrforge.QrGenerator
 import com.appvoyager.qrforge.sample.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {

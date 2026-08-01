@@ -1,9 +1,9 @@
 package com.appvoyager.qrforge.internal
 
+import com.appvoyager.qrforge.QrOptions
 import com.appvoyager.qrforge.QrTestFixtures.CUSTOM_MARGIN
 import com.appvoyager.qrforge.QrTestFixtures.CUSTOM_SIZE
 import com.appvoyager.qrforge.QrTestFixtures.PNG_HEADER
-import com.appvoyager.qrforge.QrOptions
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test

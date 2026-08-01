@@ -2,6 +2,8 @@
 name = "qrforge-jni"
 version = "0.1.0"
 edition = "2021"
+# Android AAR に同梱する native library であり、crates.io へは publish しない。
+publish = false
 
 [lib]
 name = "qrforge"

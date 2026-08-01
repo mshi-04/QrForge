@@ -7,6 +7,11 @@ import org.gradle.platform.OperatingSystem
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
+    alias(libs.plugins.ktlint)
+}
+
+ktlint {
+    version.set(libs.versions.ktlint.cli.get())
 }
 
 tasks.named<UpdateDaemonJvm>("updateDaemonJvm") {
