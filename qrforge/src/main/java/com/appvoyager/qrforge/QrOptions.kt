@@ -1,9 +1,6 @@
 package com.appvoyager.qrforge
 
-data class QrOptions(
-    val size: Int = DEFAULT_SIZE,
-    val margin: Int = DEFAULT_MARGIN,
-) {
+data class QrOptions(val size: Int = DEFAULT_SIZE, val margin: Int = DEFAULT_MARGIN) {
     init {
         require(size in MIN_SIZE..MAX_SIZE) {
             "QR image size must be between $MIN_SIZE and $MAX_SIZE pixels"

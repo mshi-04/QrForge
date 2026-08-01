@@ -137,10 +137,7 @@ class QrGeneratorInputValidationTest {
         )
     }
 
-    private data class ReceivedOptions(
-        val size: Int,
-        val margin: Int,
-    )
+    private data class ReceivedOptions(val size: Int, val margin: Int)
 
     private fun generateStubPng(
         @Suppress("UNUSED_PARAMETER") text: String,

@@ -7,14 +7,13 @@ internal object NativeQrGenerator {
         "QR native entry point is unavailable"
 
     @JvmSynthetic
-    fun generateQrPng(text: String, size: Int, margin: Int): ByteArray =
-        generateQrPng(
-            text = text,
-            size = size,
-            margin = margin,
-            loadLibrary = NativeLibraryLoader::load,
-            invokeNative = ::nativeGenerateQrPng,
-        )
+    fun generateQrPng(text: String, size: Int, margin: Int): ByteArray = generateQrPng(
+        text = text,
+        size = size,
+        margin = margin,
+        loadLibrary = NativeLibraryLoader::load,
+        invokeNative = ::nativeGenerateQrPng,
+    )
 
     // load と entry point 解決の失敗を ambient な native 環境に依存せず検証するため internal に置く。
     // Java 利用者向けの public API ではない。
@@ -36,20 +35,15 @@ internal object NativeQrGenerator {
     }
 
     @JvmStatic
-    private external fun nativeGenerateQrPng(
-        text: String,
-        size: Int,
-        margin: Int,
-    ): ByteArray
+    private external fun nativeGenerateQrPng(text: String, size: Int, margin: Int): ByteArray
 
     // UnsatisfiedLinkError は library load 時と entry point 解決時の両方で起き得るので、
     // NativeLibraryUnavailable への変換をここに一本化する。
-    private inline fun <T> mapLinkError(message: String, block: () -> T): T =
-        try {
-            block()
-        } catch (error: UnsatisfiedLinkError) {
-            throw NativeLibraryUnavailable(message = message, cause = error)
-        }
+    private inline fun <T> mapLinkError(message: String, block: () -> T): T = try {
+        block()
+    } catch (error: UnsatisfiedLinkError) {
+        throw NativeLibraryUnavailable(message = message, cause = error)
+    }
 
     private object NativeLibraryLoader {
         @Volatile private var isLoaded = false
@@ -65,10 +59,7 @@ internal object NativeQrGenerator {
         }
     }
 
-    class NativeLibraryUnavailable(
-        message: String,
-        cause: Throwable,
-    ) : RuntimeException(message, cause)
+    class NativeLibraryUnavailable(message: String, cause: Throwable) : RuntimeException(message, cause)
 
     class GenerationFailed(message: String) : RuntimeException(message)
 }
