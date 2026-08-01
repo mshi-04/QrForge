@@ -8,7 +8,7 @@
 ## 公開するもの
 
 ```kotlin
-object QrForge {
+object QrGenerator {
     @JvmOverloads
     fun createBitmap(text: String, options: QrOptions = QrOptions()): Bitmap
 
@@ -21,24 +21,24 @@ data class QrOptions(
     val margin: Int = 4,
 )
 
-sealed class QrForgeException(
+sealed class QrGenerationException(
     message: String,
     cause: Throwable? = null,
 ) : RuntimeException(message, cause) {
     class GenerationFailed(
         message: String,
         cause: Throwable? = null,
-    ) : QrForgeException(message, cause)
+    ) : QrGenerationException(message, cause)
 
     class DecodeFailed(
         message: String,
         cause: Throwable? = null,
-    ) : QrForgeException(message, cause)
+    ) : QrGenerationException(message, cause)
 
     class NativeLibraryUnavailable(
         message: String,
         cause: Throwable? = null,
-    ) : QrForgeException(message, cause)
+    ) : QrGenerationException(message, cause)
 }
 ```
 
@@ -47,7 +47,7 @@ option は Kotlin のデフォルト引数で省略できる。`@JvmOverloads` �
 
 ## 公開しないもの
 
-`QrForgeNative`、`external fun`、Rust の JNI symbol、`System.loadLibrary("qrforge")`、
+`NativeQrGenerator`、`external fun`、Rust の JNI symbol、`System.loadLibrary("qrforge")`、
 Rust crate の内部型と PNG エンコード実装。README・sample・利用者向け文書に出さない。
 
 ## 入力
@@ -96,14 +96,14 @@ module_size = ceil(size / (qr_width + margin * 2))
 | ケース | 例外 |
 |--------|------|
 | blank text、`QrOptions` の値域違反 | `IllegalArgumentException` |
-| native library をロードできない、JNI entry point を解決できない | `QrForgeException.NativeLibraryUnavailable` |
-| QR エンコード失敗、PNG エンコード失敗、JNI 側の変換失敗 | `QrForgeException.GenerationFailed` |
-| PNG decode 失敗、Bitmap 確保がメモリ上限超過、`OutOfMemoryError` | `QrForgeException.DecodeFailed` |
+| native library をロードできない、JNI entry point を解決できない | `QrGenerationException.NativeLibraryUnavailable` |
+| QR エンコード失敗、PNG エンコード失敗、JNI 側の変換失敗 | `QrGenerationException.GenerationFailed` |
+| PNG decode 失敗、Bitmap 確保がメモリ上限超過、`OutOfMemoryError` | `QrGenerationException.DecodeFailed` |
 
 4 つを混ぜない。利用者が「入力を直せばよいのか」「端末の問題なのか」「ライブラリの同梱漏れなのか」
 を区別できることが、この分類の目的。
 
-`QrForgeException` は `sealed class` なので、`when` で網羅的に分岐できる。
+`QrGenerationException` は `sealed class` なので、`when` で網羅的に分岐できる。
 
 ### メモリ上限ガード
 

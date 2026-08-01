@@ -4,15 +4,15 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 
-class QrForgeNativeTest {
+class NativeQrGeneratorTest {
     @Test
     fun generateQrPngMapsLibraryLoadFailure() {
         // Arrange
         val linkError = UnsatisfiedLinkError("test load failure")
 
         // Act
-        val exception = assertThrows(QrForgeNative.NativeLibraryUnavailable::class.java) {
-            QrForgeNative.generateQrPng(
+        val exception = assertThrows(NativeQrGenerator.NativeLibraryUnavailable::class.java) {
+            NativeQrGenerator.generateQrPng(
                 text = "text",
                 size = SAMPLE_SIZE,
                 margin = SAMPLE_MARGIN,
@@ -22,7 +22,7 @@ class QrForgeNativeTest {
         }
 
         // Assert
-        assertEquals("QrForge native library is unavailable", exception.message)
+        assertEquals("QR native library is unavailable", exception.message)
     }
 
     @Test
@@ -31,8 +31,8 @@ class QrForgeNativeTest {
         val linkError = UnsatisfiedLinkError("test entry point failure")
 
         // Act
-        val exception = assertThrows(QrForgeNative.NativeLibraryUnavailable::class.java) {
-            QrForgeNative.generateQrPng(
+        val exception = assertThrows(NativeQrGenerator.NativeLibraryUnavailable::class.java) {
+            NativeQrGenerator.generateQrPng(
                 text = "text",
                 size = SAMPLE_SIZE,
                 margin = SAMPLE_MARGIN,
@@ -42,7 +42,7 @@ class QrForgeNativeTest {
         }
 
         // Assert
-        assertEquals("QrForge native entry point is unavailable", exception.message)
+        assertEquals("QR native entry point is unavailable", exception.message)
     }
 
     private companion object {

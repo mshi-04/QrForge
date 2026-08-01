@@ -2,7 +2,7 @@
 
 QrForge は、Android/Kotlin から SDK 風に呼び出せる Rust 製 QR コード生成ライブラリです。
 
-利用者向け API は Kotlin の `QrForge` に集約し、Rust・JNI・NDK の詳細はライブラリ内部に閉じ込めます。現在は Android library module `:qrforge` と、動作確認用の sample app `:app` を持つ構成です。
+利用者向け API は Kotlin の `QrGenerator` に集約し、Rust・JNI・NDK の詳細はライブラリ内部に閉じ込めます。現在は Android library module `:qrforge` と、動作確認用の sample app `:app` を持つ構成です。
 
 ## できること
 
@@ -18,9 +18,9 @@ QrForge は、Android/Kotlin から SDK 風に呼び出せる Rust 製 QR コー
 QrForge/
 ├── app/                 # :qrforge を利用する sample app
 ├── qrforge/             # Android library module
-│   ├── QrForge          # Kotlin public API
-│   ├── QrOptions        # public option model
-│   ├── QrForgeException # public exception type
+│   ├── QrGenerator           # Kotlin public API
+│   ├── QrOptions             # public option model
+│   ├── QrGenerationException # public exception type
 │   └── internal/        # JNI binding
 └── rust/
     ├── qrforge-core/    # QR 生成と PNG エンコード
@@ -34,20 +34,20 @@ QrForge/
 ### Bitmap を生成する
 
 ```kotlin
-val bitmap = QrForge.createBitmap("https://example.com")
+val bitmap = QrGenerator.createBitmap("https://example.com")
 imageView.setImageBitmap(bitmap)
 ```
 
 ### PNG bytes を生成する
 
 ```kotlin
-val pngBytes = QrForge.createPngBytes("Hello QrForge")
+val pngBytes = QrGenerator.createPngBytes("Hello QR")
 ```
 
 ### オプションを指定する
 
 ```kotlin
-val bitmap = QrForge.createBitmap(
+val bitmap = QrGenerator.createBitmap(
     text = "https://example.com",
     options = QrOptions(size = 768, margin = 6),
 )
@@ -60,9 +60,9 @@ val bitmap = QrForge.createBitmap(
 | ケース | 例外 |
 |--------|------|
 | blank text / options 範囲外 | `IllegalArgumentException` |
-| native library がロードできない | `QrForgeException.NativeLibraryUnavailable` |
-| QR 生成に失敗 | `QrForgeException.GenerationFailed` |
-| PNG decode に失敗 / Bitmap 確保がメモリ上限超過・OOM | `QrForgeException.DecodeFailed` |
+| native library がロードできない | `QrGenerationException.NativeLibraryUnavailable` |
+| QR 生成に失敗 | `QrGenerationException.GenerationFailed` |
+| PNG decode に失敗 / Bitmap 確保がメモリ上限超過・OOM | `QrGenerationException.DecodeFailed` |
 
 ## 対応 ABI
 

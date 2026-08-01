@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 
-class QrForgeInputValidationTest {
+class QrGeneratorInputValidationTest {
     @Test
     fun createPngBytesThrowsIllegalArgumentForBlankText() {
         // Arrange
@@ -13,7 +13,7 @@ class QrForgeInputValidationTest {
 
         // Act & Assert
         assertThrows(IllegalArgumentException::class.java) {
-            QrForge.createPngBytes(text)
+            QrGenerator.createPngBytes(text)
         }
     }
 
@@ -24,7 +24,7 @@ class QrForgeInputValidationTest {
 
         // Act & Assert
         assertThrows(IllegalArgumentException::class.java) {
-            QrForge.createPngBytes(text)
+            QrGenerator.createPngBytes(text)
         }
     }
 
@@ -35,7 +35,7 @@ class QrForgeInputValidationTest {
 
         // Act & Assert
         assertThrows(IllegalArgumentException::class.java) {
-            QrForge.createPngBytes(text)
+            QrGenerator.createPngBytes(text)
         }
     }
 
@@ -46,7 +46,7 @@ class QrForgeInputValidationTest {
 
         // Act & Assert
         assertThrows(IllegalArgumentException::class.java) {
-            QrForge.createPngBytes(text)
+            QrGenerator.createPngBytes(text)
         }
     }
 
@@ -57,7 +57,7 @@ class QrForgeInputValidationTest {
 
         // Act & Assert
         assertThrows(IllegalArgumentException::class.java) {
-            QrForge.createBitmap(text)
+            QrGenerator.createBitmap(text)
         }
     }
 
@@ -68,7 +68,7 @@ class QrForgeInputValidationTest {
 
         // Act & Assert
         assertDoesNotThrow {
-            QrForge.createPngBytes(text, QrOptions(), ::generateStubPng)
+            QrGenerator.createPngBytes(text, QrOptions(), ::generateStubPng)
         }
     }
 
@@ -79,7 +79,7 @@ class QrForgeInputValidationTest {
 
         // Act & Assert
         assertDoesNotThrow {
-            QrForge.createPngBytes(text, QrOptions(), ::generateStubPng)
+            QrGenerator.createPngBytes(text, QrOptions(), ::generateStubPng)
         }
     }
 
@@ -90,7 +90,7 @@ class QrForgeInputValidationTest {
 
         // Act & Assert
         assertDoesNotThrow {
-            QrForge.createPngBytes(text, QrOptions(), ::generateStubPng)
+            QrGenerator.createPngBytes(text, QrOptions(), ::generateStubPng)
         }
     }
 
@@ -101,7 +101,7 @@ class QrForgeInputValidationTest {
         var receivedText: String? = null
 
         // Act
-        QrForge.createPngBytes(
+        QrGenerator.createPngBytes(
             text = text,
             options = QrOptions(),
             generateQrPng = { nativeText, _, _ ->
@@ -121,7 +121,7 @@ class QrForgeInputValidationTest {
         var receivedOptions: Pair<Int, Int>? = null
 
         // Act
-        QrForge.createPngBytes(
+        QrGenerator.createPngBytes(
             text = "text",
             options = options,
             generateQrPng = { _, size, margin ->

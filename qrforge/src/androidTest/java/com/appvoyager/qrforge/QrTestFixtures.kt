@@ -5,7 +5,7 @@ package com.appvoyager.qrforge
  *
  * assert は置かない (テスト側に残す)。
  */
-internal object QrForgeTestFixtures {
+internal object QrTestFixtures {
     const val CUSTOM_SIZE = 768
     const val CUSTOM_MARGIN = 6
 

@@ -1,21 +1,21 @@
 package com.appvoyager.qrforge.internal
 
-import com.appvoyager.qrforge.QrForgeTestFixtures.CUSTOM_MARGIN
-import com.appvoyager.qrforge.QrForgeTestFixtures.CUSTOM_SIZE
-import com.appvoyager.qrforge.QrForgeTestFixtures.PNG_HEADER
+import com.appvoyager.qrforge.QrTestFixtures.CUSTOM_MARGIN
+import com.appvoyager.qrforge.QrTestFixtures.CUSTOM_SIZE
+import com.appvoyager.qrforge.QrTestFixtures.PNG_HEADER
 import com.appvoyager.qrforge.QrOptions
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test
 
-class QrForgeNativeInstrumentedTest {
+class NativeQrGeneratorInstrumentedTest {
     @Test
     fun generateQrPngReturnsPngHeader() {
         // Arrange
-        val text = "Hello QrForge"
+        val text = "Hello QR"
 
         // Act
-        val bytes = QrForgeNative.generateQrPng(
+        val bytes = NativeQrGenerator.generateQrPng(
             text = text,
             size = VALID_SIZE,
             margin = VALID_MARGIN,
@@ -31,7 +31,7 @@ class QrForgeNativeInstrumentedTest {
         val text = "Hello options"
 
         // Act
-        val bytes = QrForgeNative.generateQrPng(
+        val bytes = NativeQrGenerator.generateQrPng(
             text = text,
             size = CUSTOM_SIZE,
             margin = CUSTOM_MARGIN,
@@ -48,7 +48,7 @@ class QrForgeNativeInstrumentedTest {
 
         // Act & Assert
         assertThrows(IllegalArgumentException::class.java) {
-            QrForgeNative.generateQrPng(text, VALID_SIZE, VALID_MARGIN)
+            NativeQrGenerator.generateQrPng(text, VALID_SIZE, VALID_MARGIN)
         }
     }
 
@@ -59,7 +59,7 @@ class QrForgeNativeInstrumentedTest {
 
         // Act & Assert
         assertThrows(IllegalArgumentException::class.java) {
-            QrForgeNative.generateQrPng(text, VALID_SIZE, VALID_MARGIN)
+            NativeQrGenerator.generateQrPng(text, VALID_SIZE, VALID_MARGIN)
         }
     }
 
@@ -70,7 +70,7 @@ class QrForgeNativeInstrumentedTest {
 
         // Act & Assert
         assertThrows(IllegalArgumentException::class.java) {
-            QrForgeNative.generateQrPng("invalid size", size, VALID_MARGIN)
+            NativeQrGenerator.generateQrPng("invalid size", size, VALID_MARGIN)
         }
     }
 
@@ -81,7 +81,7 @@ class QrForgeNativeInstrumentedTest {
 
         // Act & Assert
         assertThrows(IllegalArgumentException::class.java) {
-            QrForgeNative.generateQrPng("invalid margin", VALID_SIZE, margin)
+            NativeQrGenerator.generateQrPng("invalid margin", VALID_SIZE, margin)
         }
     }
 
@@ -92,7 +92,7 @@ class QrForgeNativeInstrumentedTest {
 
         // Act & Assert
         assertThrows(IllegalArgumentException::class.java) {
-            QrForgeNative.generateQrPng("negative size", size, VALID_MARGIN)
+            NativeQrGenerator.generateQrPng("negative size", size, VALID_MARGIN)
         }
     }
 
@@ -103,7 +103,7 @@ class QrForgeNativeInstrumentedTest {
 
         // Act & Assert
         assertThrows(IllegalArgumentException::class.java) {
-            QrForgeNative.generateQrPng("negative margin", VALID_SIZE, margin)
+            NativeQrGenerator.generateQrPng("negative margin", VALID_SIZE, margin)
         }
     }
 
@@ -113,8 +113,8 @@ class QrForgeNativeInstrumentedTest {
         val oversizedText = "A".repeat(10_000)
 
         // Act & Assert
-        assertThrows(QrForgeNative.GenerationFailed::class.java) {
-            QrForgeNative.generateQrPng(oversizedText, VALID_SIZE, VALID_MARGIN)
+        assertThrows(NativeQrGenerator.GenerationFailed::class.java) {
+            NativeQrGenerator.generateQrPng(oversizedText, VALID_SIZE, VALID_MARGIN)
         }
     }
 

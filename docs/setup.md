@@ -114,7 +114,7 @@ CI の `rust` job は現在の source から 3 ABI を一時出力へビルド�
 `--tests` は `connectedDebugAndroidTest` では効かない。instrumentation runner の引数を使い、PowerShell では引数全体を quote する。
 
 ```powershell
-.\gradlew.bat :qrforge:connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=com.appvoyager.qrforge.QrForgeInstrumentedTest"
+.\gradlew.bat :qrforge:connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=com.appvoyager.qrforge.QrGeneratorInstrumentedTest"
 ```
 
 ## 変更後の確認フロー

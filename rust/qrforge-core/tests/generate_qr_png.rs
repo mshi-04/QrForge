@@ -1,4 +1,4 @@
-use qrforge_core::{generate_qr_png, QrForgeError, QrOptions};
+use qrforge_core::{generate_qr_png, QrGenerationError, QrOptions};
 
 const PNG_HEADER: &[u8; 8] = b"\x89PNG\r\n\x1a\n";
 const DARK: u8 = 0;
@@ -9,7 +9,7 @@ const VERSION_40_BYTE_CAPACITY_AT_ECC_M: usize = 2_331;
 #[test]
 fn returns_png_bytes_for_regular_text() {
     // Arrange
-    let text = "Hello QrForge";
+    let text = "Hello QR";
     let options = QrOptions::default();
 
     // Act
@@ -81,7 +81,7 @@ fn returns_error_for_empty_text() {
     let error = generate_qr_png(text, &options).expect_err("empty text should be rejected");
 
     // Assert
-    assert!(matches!(error, QrForgeError::BlankInput));
+    assert!(matches!(error, QrGenerationError::BlankInput));
 }
 
 #[test]
@@ -94,7 +94,7 @@ fn returns_error_for_blank_text() {
     let error = generate_qr_png(text, &options).expect_err("blank text should be rejected");
 
     // Assert
-    assert!(matches!(error, QrForgeError::BlankInput));
+    assert!(matches!(error, QrGenerationError::BlankInput));
 }
 
 #[test]
@@ -107,7 +107,7 @@ fn returns_error_for_whitespace_only_text() {
     let error = generate_qr_png(text, &options).expect_err("blank text should be rejected");
 
     // Assert
-    assert!(matches!(error, QrForgeError::BlankInput));
+    assert!(matches!(error, QrGenerationError::BlankInput));
 }
 
 #[test]
@@ -121,7 +121,7 @@ fn returns_error_for_kotlin_control_whitespace() {
         .expect_err("Kotlin-compatible control whitespace should be rejected");
 
     // Assert
-    assert!(matches!(error, QrForgeError::BlankInput));
+    assert!(matches!(error, QrGenerationError::BlankInput));
 }
 
 #[test]
@@ -287,7 +287,7 @@ fn returns_error_for_zero_size() {
         generate_qr_png("invalid size", &options).expect_err("zero size should be rejected");
 
     // Assert
-    assert!(matches!(error, QrForgeError::InvalidOptions(_)));
+    assert!(matches!(error, QrGenerationError::InvalidOptions(_)));
 }
 
 #[test]
@@ -303,7 +303,7 @@ fn returns_error_for_too_large_size() {
         generate_qr_png("invalid size", &options).expect_err("too large size should be rejected");
 
     // Assert
-    assert!(matches!(error, QrForgeError::InvalidOptions(_)));
+    assert!(matches!(error, QrGenerationError::InvalidOptions(_)));
 }
 
 #[test]
@@ -319,7 +319,7 @@ fn returns_error_for_too_large_margin() {
         .expect_err("too large margin should be rejected");
 
     // Assert
-    assert!(matches!(error, QrForgeError::InvalidOptions(_)));
+    assert!(matches!(error, QrGenerationError::InvalidOptions(_)));
 }
 
 #[test]
@@ -373,7 +373,7 @@ fn returns_error_for_invalid_size_regardless_of_margin() {
         .expect_err("too large size should be rejected");
 
     // Assert
-    assert!(matches!(error, QrForgeError::InvalidOptions(_)));
+    assert!(matches!(error, QrGenerationError::InvalidOptions(_)));
 }
 
 #[test]
@@ -387,13 +387,13 @@ fn returns_qr_encoding_error_above_version_40_byte_capacity_at_ecc_m() {
         .expect_err("text above the Version 40 byte capacity should be rejected at ECC-M");
 
     // Assert
-    assert!(matches!(error, QrForgeError::QrEncoding(_)));
+    assert!(matches!(error, QrGenerationError::QrEncoding(_)));
 }
 
 #[test]
 fn blank_input_display_message_is_stable() {
     // Arrange
-    let error = QrForgeError::BlankInput;
+    let error = QrGenerationError::BlankInput;
 
     // Act
     let message = error.to_string();
@@ -405,7 +405,7 @@ fn blank_input_display_message_is_stable() {
 #[test]
 fn invalid_options_display_uses_validation_message() {
     // Arrange
-    let error = QrForgeError::InvalidOptions("custom validation message".to_string());
+    let error = QrGenerationError::InvalidOptions("custom validation message".to_string());
 
     // Act
     let message = error.to_string();

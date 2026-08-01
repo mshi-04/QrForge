@@ -1,23 +1,23 @@
 package com.appvoyager.qrforge
 
 import android.graphics.Bitmap
-import com.appvoyager.qrforge.QrForgeTestFixtures.CUSTOM_MARGIN
-import com.appvoyager.qrforge.QrForgeTestFixtures.CUSTOM_SIZE
-import com.appvoyager.qrforge.QrForgeTestFixtures.PNG_HEADER
+import com.appvoyager.qrforge.QrTestFixtures.CUSTOM_MARGIN
+import com.appvoyager.qrforge.QrTestFixtures.CUSTOM_SIZE
+import com.appvoyager.qrforge.QrTestFixtures.PNG_HEADER
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class QrForgeInstrumentedTest {
+class QrGeneratorInstrumentedTest {
     @Test
     fun createPngBytesReturnsPngHeader() {
         // Arrange
-        val text = "Hello QrForge"
+        val text = "Hello QR"
 
         // Act
-        val bytes = QrForge.createPngBytes(text)
+        val bytes = QrGenerator.createPngBytes(text)
 
         // Assert
         assertArrayEquals(PNG_HEADER, bytes.copyOf(PNG_HEADER.size))
@@ -26,10 +26,10 @@ class QrForgeInstrumentedTest {
     @Test
     fun createBitmapReturnsAtLeastDefaultWidthBitmap() {
         // Arrange
-        val text = "Hello QrForge"
+        val text = "Hello QR"
 
         // Act
-        val bitmap = QrForge.createBitmap(text)
+        val bitmap = QrGenerator.createBitmap(text)
 
         // Assert
         assertTrue(bitmap.width >= QrOptions.DEFAULT_SIZE)
@@ -38,10 +38,10 @@ class QrForgeInstrumentedTest {
     @Test
     fun createBitmapReturnsAtLeastDefaultHeightBitmap() {
         // Arrange
-        val text = "Hello QrForge"
+        val text = "Hello QR"
 
         // Act
-        val bitmap = QrForge.createBitmap(text)
+        val bitmap = QrGenerator.createBitmap(text)
 
         // Assert
         assertTrue(bitmap.height >= QrOptions.DEFAULT_SIZE)
@@ -50,10 +50,10 @@ class QrForgeInstrumentedTest {
     @Test
     fun createBitmapReturnsArgb8888Config() {
         // Arrange
-        val text = "Hello QrForge"
+        val text = "Hello QR"
 
         // Act
-        val bitmap = QrForge.createBitmap(text)
+        val bitmap = QrGenerator.createBitmap(text)
 
         // Assert
         assertEquals(Bitmap.Config.ARGB_8888, bitmap.config)
@@ -65,7 +65,7 @@ class QrForgeInstrumentedTest {
         val options = QrOptions(size = CUSTOM_SIZE, margin = CUSTOM_MARGIN)
 
         // Act
-        val bytes = QrForge.createPngBytes(
+        val bytes = QrGenerator.createPngBytes(
             text = "Hello options",
             options = options,
         )
@@ -80,7 +80,7 @@ class QrForgeInstrumentedTest {
         val options = QrOptions(size = CUSTOM_SIZE, margin = CUSTOM_MARGIN)
 
         // Act
-        val bitmap = QrForge.createBitmap(
+        val bitmap = QrGenerator.createBitmap(
             text = "Hello custom bitmap",
             options = options,
         )
@@ -95,7 +95,7 @@ class QrForgeInstrumentedTest {
         val options = QrOptions(size = CUSTOM_SIZE, margin = CUSTOM_MARGIN)
 
         // Act
-        val bitmap = QrForge.createBitmap(
+        val bitmap = QrGenerator.createBitmap(
             text = "Hello custom bitmap",
             options = options,
         )
@@ -110,7 +110,7 @@ class QrForgeInstrumentedTest {
         val options = QrOptions(size = CUSTOM_SIZE, margin = CUSTOM_MARGIN)
 
         // Act
-        val bitmap = QrForge.createBitmap(
+        val bitmap = QrGenerator.createBitmap(
             text = "Hello custom bitmap",
             options = options,
         )
@@ -125,8 +125,8 @@ class QrForgeInstrumentedTest {
         val oversizedText = "A".repeat(10_000)
 
         // Act & Assert
-        assertThrows(QrForgeException.GenerationFailed::class.java) {
-            QrForge.createPngBytes(oversizedText)
+        assertThrows(QrGenerationException.GenerationFailed::class.java) {
+            QrGenerator.createPngBytes(oversizedText)
         }
     }
 
@@ -136,7 +136,7 @@ class QrForgeInstrumentedTest {
         val text = "a"
 
         // Act
-        val bytes = QrForge.createPngBytes(text)
+        val bytes = QrGenerator.createPngBytes(text)
 
         // Assert
         assertArrayEquals(PNG_HEADER, bytes.copyOf(PNG_HEADER.size))
@@ -148,7 +148,7 @@ class QrForgeInstrumentedTest {
         val text = "日本語テスト"
 
         // Act
-        val bytes = QrForge.createPngBytes(text)
+        val bytes = QrGenerator.createPngBytes(text)
 
         // Assert
         assertArrayEquals(PNG_HEADER, bytes.copyOf(PNG_HEADER.size))
@@ -157,10 +157,10 @@ class QrForgeInstrumentedTest {
     @Test
     fun createBitmapHandlesEmojiText() {
         // Arrange
-        val text = "QrForge 🚀🌟"
+        val text = "QR 🚀🌟"
 
         // Act
-        val bitmap = QrForge.createBitmap(text)
+        val bitmap = QrGenerator.createBitmap(text)
 
         // Assert
         assertTrue(bitmap.width >= QrOptions.DEFAULT_SIZE)

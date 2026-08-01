@@ -76,7 +76,7 @@ native library に依存しない範囲に限る。テストのためだけに `
 
 ### Instrumented Test
 
-共通定数は `qrforge/src/androidTest/java/com/appvoyager/qrforge/QrForgeTestFixtures.kt` に置く。
+共通定数は `qrforge/src/androidTest/java/com/appvoyager/qrforge/QrTestFixtures.kt` に置く。
 assert は置かない。
 
 ローカルで実行する前に、直前の `rust/` 変更に対して `.so` を再ビルドしたか確認する。していなければ

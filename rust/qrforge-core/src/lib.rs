@@ -6,7 +6,7 @@ use png::{BitDepth, ColorType, Encoder};
 use qrcode::types::Color;
 use qrcode::QrCode;
 
-pub use error::QrForgeError;
+pub use error::QrGenerationError;
 
 // QrOptions の値域はこの crate を正典とし、Kotlin 側 `QrOptions` の companion 定数と
 // 同じ値を保つ。変更時は docs/api-design.md の「定数同期」表も合わせて更新する。
@@ -41,15 +41,15 @@ impl Default for QrOptions {
     }
 }
 
-pub fn generate_qr_png(text: &str, options: &QrOptions) -> Result<Vec<u8>, QrForgeError> {
+pub fn generate_qr_png(text: &str, options: &QrOptions) -> Result<Vec<u8>, QrGenerationError> {
     if text.chars().all(is_contract_whitespace) {
-        return Err(QrForgeError::BlankInput);
+        return Err(QrGenerationError::BlankInput);
     }
     validate_options(options)?;
 
     let code = QrCode::new(text.as_bytes())?;
     let image = render_qr_image(&code, options);
-    encode_png(&image).map_err(QrForgeError::from)
+    encode_png(&image).map_err(QrGenerationError::from)
 }
 
 fn is_contract_whitespace(character: char) -> bool {
@@ -59,15 +59,15 @@ fn is_contract_whitespace(character: char) -> bool {
         || (character.is_whitespace() && character != '\u{0085}')
 }
 
-fn validate_options(options: &QrOptions) -> Result<(), QrForgeError> {
+fn validate_options(options: &QrOptions) -> Result<(), QrGenerationError> {
     if options.size < MIN_IMAGE_SIZE || options.size > MAX_IMAGE_SIZE {
-        return Err(QrForgeError::InvalidOptions(format!(
+        return Err(QrGenerationError::InvalidOptions(format!(
             "QR image size must be between {MIN_IMAGE_SIZE} and {MAX_IMAGE_SIZE} pixels"
         )));
     }
 
     if options.margin > MAX_MARGIN {
-        return Err(QrForgeError::InvalidOptions(format!(
+        return Err(QrGenerationError::InvalidOptions(format!(
             "QR margin must be between {MIN_MARGIN} and {MAX_MARGIN} modules"
         )));
     }
