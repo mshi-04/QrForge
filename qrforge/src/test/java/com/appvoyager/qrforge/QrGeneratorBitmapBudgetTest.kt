@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 
-class QrForgeBitmapBudgetTest {
+class QrGeneratorBitmapBudgetTest {
     @Test
     fun ensureWithinBitmapBudgetThrowsWhenOverBudget() {
         // Arrange: 8193x4096x4 bytes は production の 128MiB 予算を超える
@@ -12,8 +12,8 @@ class QrForgeBitmapBudgetTest {
         val height = 4096
 
         // Act & Assert
-        assertThrows(QrForgeException.DecodeFailed::class.java) {
-            QrForge.ensureWithinBitmapBudget(width = width, height = height)
+        assertThrows(QrGenerationException.DecodeFailed::class.java) {
+            QrGenerator.ensureWithinBitmapBudget(width = width, height = height)
         }
     }
 
@@ -25,7 +25,7 @@ class QrForgeBitmapBudgetTest {
 
         // Act & Assert
         assertDoesNotThrow {
-            QrForge.ensureWithinBitmapBudget(width = width, height = height)
+            QrGenerator.ensureWithinBitmapBudget(width = width, height = height)
         }
     }
 
@@ -36,7 +36,7 @@ class QrForgeBitmapBudgetTest {
 
         // Act & Assert
         assertDoesNotThrow {
-            QrForge.ensureWithinBitmapBudget(width = sideLength, height = sideLength)
+            QrGenerator.ensureWithinBitmapBudget(width = sideLength, height = sideLength)
         }
     }
 
@@ -47,7 +47,7 @@ class QrForgeBitmapBudgetTest {
 
         // Act & Assert
         assertDoesNotThrow {
-            QrForge.ensureWithinBitmapBudget(width = width, height = 512)
+            QrGenerator.ensureWithinBitmapBudget(width = width, height = 512)
         }
     }
 
@@ -58,7 +58,7 @@ class QrForgeBitmapBudgetTest {
 
         // Act & Assert
         assertDoesNotThrow {
-            QrForge.ensureWithinBitmapBudget(width = width, height = 512)
+            QrGenerator.ensureWithinBitmapBudget(width = width, height = 512)
         }
     }
 }

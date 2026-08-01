@@ -33,13 +33,13 @@ app (sample)
 
 ## 生成フロー
 
-`QrForge.createBitmap(text, options)` が何を通るか。責務境界を判断するときはこの流れを基準にする。
+`QrGenerator.createBitmap(text, options)` が何を通るか。責務境界を判断するときはこの流れを基準にする。
 
 ```text
-QrForge.createBitmap
-├─ QrForge.createPngBytes
+QrGenerator.createBitmap
+├─ QrGenerator.createPngBytes
 │  ├─ require(text.isNotBlank())      Kotlin wrapper : blank を IllegalArgumentException で拒否
-│  └─ QrForgeNative.generateQrPng    Kotlin binding : library load と UnsatisfiedLinkError 変換
+│  └─ NativeQrGenerator.generateQrPng    Kotlin binding : library load と UnsatisfiedLinkError 変換
 │     └─ nativeGenerateQrPng         JNI bridge
 │        ├─ env.get_string           JString → String
 │        ├─ options_from_jni         jint → u32（負値のみ拒否）
@@ -112,9 +112,9 @@ blank text の拒否と option 値域の検証は、Kotlin wrapper と Rust core
 
 ## 公開範囲
 
-公開するのは `QrForge`、`QrOptions`、`QrForgeException` の 3 つだけ。
+公開するのは `QrGenerator`、`QrOptions`、`QrGenerationException` の 3 つだけ。
 
-`QrForgeNative`、`external fun`、Rust の JNI symbol、`System.loadLibrary("qrforge")`、Rust
+`NativeQrGenerator`、`external fun`、Rust の JNI symbol、`System.loadLibrary("qrforge")`、Rust
 crate の内部型は、README・sample・利用者向け文書に出さない。
 
 ## 拡張するとき

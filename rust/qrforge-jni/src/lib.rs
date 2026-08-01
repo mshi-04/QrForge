@@ -5,14 +5,14 @@ use std::panic::catch_unwind;
 use jni::objects::{JClass, JString};
 use jni::sys::{jbyteArray, jint};
 use jni::JNIEnv;
-use qrforge_core::{generate_qr_png, QrForgeError, QrOptions};
+use qrforge_core::{generate_qr_png, QrGenerationError, QrOptions};
 
 const GENERATION_FAILED_CLASS: &str =
-    "com/appvoyager/qrforge/internal/QrForgeNative$GenerationFailed";
+    "com/appvoyager/qrforge/internal/NativeQrGenerator$GenerationFailed";
 const ILLEGAL_ARGUMENT_EXCEPTION_CLASS: &str = "java/lang/IllegalArgumentException";
 
 #[no_mangle]
-pub extern "system" fn Java_com_appvoyager_qrforge_internal_QrForgeNative_nativeGenerateQrPng<
+pub extern "system" fn Java_com_appvoyager_qrforge_internal_NativeQrGenerator_nativeGenerateQrPng<
     'local,
 >(
     mut env: JNIEnv<'local>,
@@ -93,12 +93,14 @@ fn options_from_jni(size: jint, margin: jint) -> Result<QrOptions, &'static str>
     })
 }
 
-fn throw_qr_error(env: &mut JNIEnv<'_>, error: QrForgeError) {
+fn throw_qr_error(env: &mut JNIEnv<'_>, error: QrGenerationError) {
     let class = match &error {
-        QrForgeError::BlankInput | QrForgeError::InvalidOptions(_) => {
+        QrGenerationError::BlankInput | QrGenerationError::InvalidOptions(_) => {
             ILLEGAL_ARGUMENT_EXCEPTION_CLASS
         }
-        QrForgeError::QrEncoding(_) | QrForgeError::PngEncoding(_) => GENERATION_FAILED_CLASS,
+        QrGenerationError::QrEncoding(_) | QrGenerationError::PngEncoding(_) => {
+            GENERATION_FAILED_CLASS
+        }
     };
     throw_or_fatal(env, class, &error.to_string());
 }

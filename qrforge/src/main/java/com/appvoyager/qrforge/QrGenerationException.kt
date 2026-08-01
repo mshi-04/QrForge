@@ -1,21 +1,21 @@
 package com.appvoyager.qrforge
 
-sealed class QrForgeException(
+sealed class QrGenerationException(
     message: String,
     cause: Throwable? = null,
 ) : RuntimeException(message, cause) {
     class GenerationFailed(
         message: String,
         cause: Throwable? = null,
-    ) : QrForgeException(message, cause)
+    ) : QrGenerationException(message, cause)
 
     class DecodeFailed(
         message: String,
         cause: Throwable? = null,
-    ) : QrForgeException(message, cause)
+    ) : QrGenerationException(message, cause)
 
     class NativeLibraryUnavailable(
         message: String,
         cause: Throwable? = null,
-    ) : QrForgeException(message, cause)
+    ) : QrGenerationException(message, cause)
 }

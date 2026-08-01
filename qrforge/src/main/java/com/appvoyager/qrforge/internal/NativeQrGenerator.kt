@@ -1,10 +1,10 @@
 package com.appvoyager.qrforge.internal
 
-internal object QrForgeNative {
+internal object NativeQrGenerator {
     private const val NATIVE_LIBRARY_UNAVAILABLE_MESSAGE =
-        "QrForge native library is unavailable"
+        "QR native library is unavailable"
     private const val NATIVE_ENTRY_POINT_UNAVAILABLE_MESSAGE =
-        "QrForge native entry point is unavailable"
+        "QR native entry point is unavailable"
 
     @JvmSynthetic
     fun generateQrPng(text: String, size: Int, margin: Int): ByteArray =

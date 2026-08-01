@@ -29,7 +29,7 @@
 - Rust core が Android・JNI・Kotlin に依存していないか。
 - JNI bridge が型変換とエラー変換だけを担っているか。生成ロジックが漏れていないか。
 - sample app が wrapper 以外の内部 API を呼んでいないか。
-- `QrForgeNative`、`external fun`、JNI symbol、`System.loadLibrary` が公開 API や利用例に出ていないか。
+- `NativeQrGenerator`、`external fun`、JNI symbol、`System.loadLibrary` が公開 API や利用例に出ていないか。
 
 ### 2. public API の互換性
 

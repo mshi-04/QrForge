@@ -16,7 +16,7 @@
 
 ### 可視性
 
-- 公開するのは `QrForge`、`QrOptions`、`QrForgeException` だけ。それ以外は `internal`。
+- 公開するのは `QrGenerator`、`QrOptions`、`QrGenerationException` だけ。それ以外は `internal`。
 - テストのためだけに `internal` にする場合は、その旨をコメントで明示する。
   意図せず公開範囲を広げたのか、テスト都合なのかを読み手が区別できるようにする。
 
@@ -39,14 +39,14 @@ internal fun ensureWithinBitmapBudget(width: Int, height: Int) {
 ### 例外
 
 - 入力不正は `IllegalArgumentException`。`require` を使い、メッセージに値域を含める。
-- ライブラリ内部の失敗は `QrForgeException` のいずれかに分類する。分類の対応は
+- ライブラリ内部の失敗は `QrGenerationException` のいずれかに分類する。分類の対応は
   [api-design.md](api-design.md) が正典。
 - 汎用 `RuntimeException` を投げない。利用者が分岐できなくなる。
 - 下位層の例外を包むときは `cause` を必ず渡す。
 - 包むときのメッセージ null は既定文言でフォールバックする。空メッセージの例外を作らない。
 
 ```kotlin
-throw QrForgeException.GenerationFailed(error.message ?: "QR generation failed", error)
+throw QrGenerationException.GenerationFailed(error.message ?: "QR generation failed", error)
 ```
 
 - `OutOfMemoryError` のように通常は捕捉しない `Error` でも、発生条件を特定できて型付き例外に
@@ -72,7 +72,7 @@ crate 先頭で `unwrap` と `expect` を禁止している。
 #![deny(clippy::unwrap_used, clippy::expect_used)]
 ```
 
-失敗はすべて `Result<_, QrForgeError>` で返す。`QrForgeError` には `Display` と
+失敗はすべて `Result<_, QrGenerationError>` で返す。`QrGenerationError` には `Display` と
 `Error::source` を実装し、下位のエラーを `source` で辿れるようにする。`From` 実装を用意して
 `?` で変換できるようにする。
 
@@ -88,7 +88,7 @@ crate 先頭で `unwrap` と `expect` を禁止している。
 値域の定数はこの crate が正典。エラー文言は定数から組み立て、literal を直書きしない。
 
 ```rust
-return Err(QrForgeError::InvalidOptions(format!(
+return Err(QrGenerationError::InvalidOptions(format!(
     "QR image size must be between {MIN_IMAGE_SIZE} and {MAX_IMAGE_SIZE} pixels"
 )));
 ```
@@ -157,10 +157,10 @@ SDK の利用例と手動確認 UI に留める。JNI の直接呼び出し、`S
 
 | 対象 | 名前 |
 |------|------|
-| 公開入口 | `QrForge` |
+| 公開入口 | `QrGenerator` |
 | option model | `QrOptions` |
-| SDK 例外 | `QrForgeException` |
-| 内部 native binding | `QrForgeNative` |
+| SDK 例外 | `QrGenerationException` |
+| 内部 native binding | `NativeQrGenerator` |
 | Rust core crate | `qrforge-core` |
 | Rust JNI crate | `qrforge-jni` |
 
