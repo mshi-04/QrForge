@@ -1,15 +1,17 @@
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 
+/// Errors returned by [`crate::generate_qr_png`].
 #[derive(Debug)]
-pub enum QrForgeError {
+pub enum QrGenerationError {
     BlankInput,
-    InvalidOptions(&'static str),
+    /// Option validation failure. 範囲を含む文言を組み立てるため String を持つ。
+    InvalidOptions(String),
     QrEncoding(qrcode::types::QrError),
-    PngEncoding(image::ImageError),
+    PngEncoding(png::EncodingError),
 }
 
-impl Display for QrForgeError {
+impl Display for QrGenerationError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Self::BlankInput => formatter.write_str("QR text must not be blank"),
@@ -20,7 +22,7 @@ impl Display for QrForgeError {
     }
 }
 
-impl Error for QrForgeError {
+impl Error for QrGenerationError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::BlankInput => None,
@@ -31,14 +33,14 @@ impl Error for QrForgeError {
     }
 }
 
-impl From<qrcode::types::QrError> for QrForgeError {
+impl From<qrcode::types::QrError> for QrGenerationError {
     fn from(error: qrcode::types::QrError) -> Self {
         Self::QrEncoding(error)
     }
 }
 
-impl From<image::ImageError> for QrForgeError {
-    fn from(error: image::ImageError) -> Self {
+impl From<png::EncodingError> for QrGenerationError {
+    fn from(error: png::EncodingError) -> Self {
         Self::PngEncoding(error)
     }
 }

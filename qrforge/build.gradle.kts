@@ -2,6 +2,12 @@ import org.gradle.api.tasks.testing.Test
 
 plugins {
     alias(libs.plugins.android.library)
+    alias(libs.plugins.ktlint)
+}
+
+ktlint {
+    // KtlintExtension は project ごとに独立しており、root の version 指定は伝播しない。
+    version.set(libs.versions.ktlint.cli.get())
 }
 
 android {

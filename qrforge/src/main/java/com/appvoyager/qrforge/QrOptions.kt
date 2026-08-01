@@ -1,9 +1,6 @@
 package com.appvoyager.qrforge
 
-data class QrOptions(
-    val size: Int = DEFAULT_SIZE,
-    val margin: Int = DEFAULT_MARGIN,
-) {
+data class QrOptions(val size: Int = DEFAULT_SIZE, val margin: Int = DEFAULT_MARGIN) {
     init {
         require(size in MIN_SIZE..MAX_SIZE) {
             "QR image size must be between $MIN_SIZE and $MAX_SIZE pixels"
@@ -14,6 +11,8 @@ data class QrOptions(
     }
 
     companion object {
+        // 値域は Rust core (qrforge-core/src/lib.rs) を正典とし、同じ値をここに写している。
+        // 変更時は Rust core と docs/api-design.md の「定数同期」表も同時に更新する。
         const val DEFAULT_SIZE = 512
         const val DEFAULT_MARGIN = 4
         const val MIN_SIZE = 1

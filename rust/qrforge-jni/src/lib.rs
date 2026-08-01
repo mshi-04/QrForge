@@ -1,17 +1,18 @@
 #![deny(clippy::unwrap_used, clippy::expect_used)]
 
-use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::panic::catch_unwind;
 
 use jni::objects::{JClass, JString};
 use jni::sys::{jbyteArray, jint};
 use jni::JNIEnv;
-use qrforge_core::{generate_qr_png, QrForgeError, QrOptions};
+use qrforge_core::{generate_qr_png, QrGenerationError, QrOptions};
 
 const GENERATION_FAILED_CLASS: &str =
-    "com/appvoyager/qrforge/internal/QrForgeNative$GenerationFailed";
+    "com/appvoyager/qrforge/internal/NativeQrGenerator$GenerationFailed";
+const ILLEGAL_ARGUMENT_EXCEPTION_CLASS: &str = "java/lang/IllegalArgumentException";
 
 #[no_mangle]
-pub extern "system" fn Java_com_appvoyager_qrforge_internal_QrForgeNative_nativeGenerateQrPng<
+pub extern "system" fn Java_com_appvoyager_qrforge_internal_NativeQrGenerator_nativeGenerateQrPng<
     'local,
 >(
     mut env: JNIEnv<'local>,
@@ -36,18 +37,18 @@ pub extern "system" fn Java_com_appvoyager_qrforge_internal_QrForgeNative_native
     let options = match options_from_jni(size, margin) {
         Ok(options) => options,
         Err(message) => {
-            throw_or_fatal(&mut env, "java/lang/IllegalArgumentException", message);
+            throw_or_fatal(&mut env, ILLEGAL_ARGUMENT_EXCEPTION_CLASS, message);
             return std::ptr::null_mut();
         }
     };
 
-    let result = catch_unwind(AssertUnwindSafe(|| generate_qr_png(&text_str, &options)));
+    let result = catch_unwind(|| generate_qr_png(&text_str, &options));
 
     match result {
         Ok(Ok(bytes)) => match env.byte_array_from_slice(&bytes) {
             Ok(arr) => arr.into_raw(),
             Err(e) => {
-                throw_unless_exception_pending(
+                throw_or_fatal(
                     &mut env,
                     GENERATION_FAILED_CLASS,
                     &format!("failed to create JNI byte array: {e}"),
@@ -92,45 +93,26 @@ fn options_from_jni(size: jint, margin: jint) -> Result<QrOptions, &'static str>
     })
 }
 
-fn throw_qr_error(env: &mut JNIEnv<'_>, error: QrForgeError) {
-    match error {
-        QrForgeError::BlankInput => {
-            throw_or_fatal(
-                env,
-                "java/lang/IllegalArgumentException",
-                "QR text must not be blank",
-            );
+fn throw_qr_error(env: &mut JNIEnv<'_>, error: QrGenerationError) {
+    let class = match &error {
+        QrGenerationError::BlankInput | QrGenerationError::InvalidOptions(_) => {
+            ILLEGAL_ARGUMENT_EXCEPTION_CLASS
         }
-        QrForgeError::InvalidOptions(message) => {
-            throw_or_fatal(env, "java/lang/IllegalArgumentException", message);
+        QrGenerationError::QrEncoding(_) | QrGenerationError::PngEncoding(_) => {
+            GENERATION_FAILED_CLASS
         }
-        QrForgeError::QrEncoding(e) => {
-            throw_or_fatal(
-                env,
-                GENERATION_FAILED_CLASS,
-                &format!("failed to encode QR data: {e}"),
-            );
-        }
-        QrForgeError::PngEncoding(e) => {
-            throw_or_fatal(
-                env,
-                GENERATION_FAILED_CLASS,
-                &format!("failed to encode PNG data: {e}"),
-            );
-        }
-    }
+    };
+    throw_or_fatal(env, class, &error.to_string());
 }
 
 fn throw_or_fatal(env: &mut JNIEnv<'_>, class: &str, message: &str) {
-    if env.throw_new(class, message).is_err() {
-        env.fatal_error(message);
-    }
-}
-
-fn throw_unless_exception_pending(env: &mut JNIEnv<'_>, class: &str, message: &str) {
+    // JNI 呼び出しの失敗は Java 例外が pending 状態のことがある。その場合は元の例外を
+    // そのまま伝播させ、こちらの例外で上書きしない。
     if matches!(env.exception_check(), Ok(true)) {
         return;
     }
 
-    throw_or_fatal(env, class, message);
+    if env.throw_new(class, message).is_err() {
+        env.fatal_error(message);
+    }
 }
