@@ -56,7 +56,7 @@ integration test は公開 API の詳細な契約を担う。下位で検証で�
 - テストは並列・順不同で実行できるようにし、共有可変状態や実行順へ依存させない（Book ch.11-02）。
 - 等値検証には `assert_eq!` / `assert_ne!` を使う。失敗時に両辺の値を印字するため、
   `assert!(a == b)` より原因が分かる（Book ch.11-01）。
-- 正常系のテストは `-> Result<(), QrGenerationError>` を返し、`?` でエラーを伝播させる
+- テスト関数は `Result<T, E>` を返せるため、正常系では `?` でエラーを伝播できる
   （Book ch.11-01）。エラーになること自体を検証するテストは `?` にできないので `expect_err` を使う。
 - 利用例は公開 API の rustdoc に `# Examples` として書き、`unwrap` / `expect` ではなく `?` を使う。
   例のコードはそのままコピーされるため（API Guidelines C-EXAMPLE / C-QUESTION-MARK）。
@@ -64,7 +64,8 @@ integration test は公開 API の詳細な契約を担う。下位で検証で�
 - format は rustfmt のデフォルト（公式 Style Guide）に従う。
 
 `matches!` は真偽値を返すだけなので、`assert!(matches!(...))` の失敗出力に実際の値は出ない。
-error variant を検証するときは失敗メッセージを添える。標準の `assert_matches!` は現状 nightly のみ。
+error variant を検証するときは失敗メッセージを添える。Rust 1.96 以降では標準の
+`assert_matches!` も利用できる。CI は未固定の stable toolchain を使うため利用可能。
 
 ```rust
 assert!(
@@ -75,6 +76,8 @@ assert!(
 
 ### Rust（本リポジトリの判断）
 
+- qrforge-core の正常系テストは `-> Result<(), QrGenerationError>` を返し、`?` で生成エラーを
+  伝播させる。
 - `Arrange`、`Act`、`Assert` の定型ラベルは置かない。必要なら空行で処理のまとまりを示す。
 - 境界値の根拠や依存ライブラリとの契約差など、「なぜ」を説明するコメントだけを残す。
 - 1 テスト関数は 1 つの振る舞いだけを検証する。同じ振る舞いを十分に表すためなら複数の
