@@ -165,5 +165,4 @@ class QrGeneratorInstrumentedTest {
         // Assert
         assertTrue(bitmap.width >= QrOptions.DEFAULT_SIZE)
     }
-
 }
