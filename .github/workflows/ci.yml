@@ -126,9 +126,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
         with:
-          # cache は develop でだけ生成し、他の branch は読むだけにする。feature branch は
-          # develop 向け PR の base branch cache として、これを使い回す。
-          cache-read-only: ${{ github.ref != 'refs/heads/develop' }}
+          cache-read-only: true
 
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
@@ -156,6 +154,12 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
         with:
+          # cache を書くのはこの job だけにする。setup-gradle は Gradle User Home を内容
+          # ハッシュ単位の bundle に分けて保存するため、解決する依存の集合が違う job が
+          # 書き込むと数百 MiB の bundle がその数だけ増える。この job が最も広い依存を
+          # 解決するので、他 job が読む分もここで賄える。
+          # develop でだけ生成し、feature branch は develop 向け PR の base branch cache
+          # としてこれを使い回す。
           cache-read-only: ${{ github.ref != 'refs/heads/develop' }}
 
       - name: Make Gradle wrapper executable
@@ -202,7 +206,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
         with:
-          cache-read-only: ${{ github.ref != 'refs/heads/develop' }}
+          cache-read-only: true
 
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
