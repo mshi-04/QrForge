@@ -72,6 +72,9 @@ crate 先頭で `unwrap` と `expect` を禁止している。
 #![deny(clippy::unwrap_used, clippy::expect_used)]
 ```
 
+この attribute は同じ crate の `#[cfg(test)] mod tests` にも効くため、repository root の `clippy.toml`
+で test 内だけ許可している（[unit-test.md](unit-test.md)）。production code では禁止のまま。
+
 失敗はすべて `Result<_, QrGenerationError>` で返す。`QrGenerationError` には `Display` と
 `Error::source` を実装し、下位のエラーを `source` で辿れるようにする。`From` 実装を用意して
 `?` で変換できるようにする。

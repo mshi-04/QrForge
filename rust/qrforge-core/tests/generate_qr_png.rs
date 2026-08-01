@@ -7,334 +7,282 @@ const VERSION_40_MODULE_WIDTH: u32 = 177;
 const VERSION_40_BYTE_CAPACITY_AT_ECC_M: usize = 2_331;
 
 #[test]
-fn returns_png_bytes_for_regular_text() {
-    // Arrange
+fn returns_png_bytes_for_regular_text() -> Result<(), QrGenerationError> {
     let text = "Hello QR";
     let options = QrOptions::default();
 
-    // Act
-    let bytes = generate_qr_png(text, &options).expect("regular text should generate PNG bytes");
+    let bytes = generate_qr_png(text, &options)?;
 
-    // Assert
     assert!(bytes.starts_with(PNG_HEADER));
+
+    Ok(())
 }
 
 #[test]
-fn returns_png_bytes_for_url_text() {
-    // Arrange
+fn returns_png_bytes_for_url_text() -> Result<(), QrGenerationError> {
     let text = "https://example.com";
     let options = QrOptions::default();
 
-    // Act
-    let bytes = generate_qr_png(text, &options).expect("URL text should generate PNG bytes");
+    let bytes = generate_qr_png(text, &options)?;
 
-    // Assert
     assert!(bytes.starts_with(PNG_HEADER));
+
+    Ok(())
 }
 
 #[test]
-fn returns_square_png_image() {
-    // Arrange
+fn returns_square_png_image() -> Result<(), QrGenerationError> {
     let options = QrOptions::default();
 
-    // Act
-    let bytes = generate_qr_png("square image", &options).expect("text should generate PNG bytes");
+    let bytes = generate_qr_png("square image", &options)?;
 
-    // Assert
     assert_eq!(png_width(&bytes), png_height(&bytes));
+
+    Ok(())
 }
 
 #[test]
-fn default_options_return_at_least_default_size() {
-    // Arrange
+fn default_options_return_at_least_default_size() -> Result<(), QrGenerationError> {
     let options = QrOptions::default();
 
-    // Act
-    let bytes = generate_qr_png("default size", &options).expect("text should generate PNG bytes");
+    let bytes = generate_qr_png("default size", &options)?;
 
-    // Assert
     assert!(png_width(&bytes) >= 512);
+
+    Ok(())
 }
 
 #[test]
-fn accepts_version_40_byte_capacity_at_ecc_m() {
-    // Arrange: QrCode::new の既定は ECC-M。小文字は alphanumeric mode に入らないため、
+fn accepts_version_40_byte_capacity_at_ecc_m() -> Result<(), QrGenerationError> {
+    // QrCode::new の既定は ECC-M。小文字は alphanumeric mode に入らないため、
     // 2,331 bytes が Version 40 の byte mode 容量上限になる。
     let text = "a".repeat(VERSION_40_BYTE_CAPACITY_AT_ECC_M);
     let options = QrOptions { size: 1, margin: 0 };
 
-    // Act
-    let bytes = generate_qr_png(&text, &options)
-        .expect("Version 40 byte capacity should generate PNG bytes at ECC-M");
+    let bytes = generate_qr_png(&text, &options)?;
 
-    // Assert
     assert_eq!(png_width(&bytes), VERSION_40_MODULE_WIDTH);
+
+    Ok(())
 }
 
 #[test]
-fn returns_error_for_empty_text() {
-    // Arrange
+fn returns_blank_input_for_empty_text() {
     let text = "";
     let options = QrOptions::default();
 
-    // Act
     let error = generate_qr_png(text, &options).expect_err("empty text should be rejected");
 
-    // Assert
-    assert!(matches!(error, QrGenerationError::BlankInput));
+    assert!(
+        matches!(error, QrGenerationError::BlankInput),
+        "unexpected error: {error}"
+    );
 }
 
 #[test]
-fn returns_error_for_blank_text() {
-    // Arrange
+fn returns_blank_input_for_space_only_text() {
     let text = "   ";
     let options = QrOptions::default();
 
-    // Act
     let error = generate_qr_png(text, &options).expect_err("blank text should be rejected");
 
-    // Assert
-    assert!(matches!(error, QrGenerationError::BlankInput));
+    assert!(
+        matches!(error, QrGenerationError::BlankInput),
+        "unexpected error: {error}"
+    );
 }
 
 #[test]
-fn returns_error_for_whitespace_only_text() {
-    // Arrange
+fn returns_blank_input_for_whitespace_only_text() {
     let text = "   \t\n";
     let options = QrOptions::default();
 
-    // Act
     let error = generate_qr_png(text, &options).expect_err("blank text should be rejected");
 
-    // Assert
-    assert!(matches!(error, QrGenerationError::BlankInput));
+    assert!(
+        matches!(error, QrGenerationError::BlankInput),
+        "unexpected error: {error}"
+    );
 }
 
 #[test]
-fn returns_error_for_kotlin_control_whitespace() {
-    // Arrange: Kotlin/JVM の Char.isWhitespace は U+001C..U+001F を blank として扱う。
+fn returns_blank_input_for_kotlin_control_whitespace() {
+    // Kotlin/JVM の Char.isWhitespace は U+001C..U+001F を blank として扱う。
     let text = "\u{001C}\u{001D}\u{001E}\u{001F}";
     let options = QrOptions::default();
 
-    // Act
     let error = generate_qr_png(text, &options)
         .expect_err("Kotlin-compatible control whitespace should be rejected");
 
-    // Assert
-    assert!(matches!(error, QrGenerationError::BlankInput));
+    assert!(
+        matches!(error, QrGenerationError::BlankInput),
+        "unexpected error: {error}"
+    );
 }
 
 #[test]
-fn accepts_next_line_control_like_kotlin() {
-    // Arrange: NEXT LINE (U+0085) は Kotlin/JVM の Char.isWhitespace ではない。
+fn accepts_next_line_control_like_kotlin() -> Result<(), QrGenerationError> {
+    // NEXT LINE (U+0085) は Kotlin/JVM の Char.isWhitespace ではない。
     let text = "\u{0085}";
     let options = QrOptions::default();
 
-    // Act
-    let bytes = generate_qr_png(text, &options)
-        .expect("NEXT LINE control should be accepted as non-blank text");
+    let bytes = generate_qr_png(text, &options)?;
 
-    // Assert
     assert!(bytes.starts_with(PNG_HEADER));
+
+    Ok(())
 }
 
 #[test]
-fn respects_custom_dimensions() {
-    // Arrange
+fn returns_at_least_requested_custom_dimensions() -> Result<(), QrGenerationError> {
     let options = QrOptions {
         size: 256,
         margin: 4,
     };
-    let bytes = generate_qr_png("custom size", &options)
-        .expect("text should generate PNG bytes with custom dimensions");
 
-    // Assert
-    assert!(bytes.starts_with(PNG_HEADER));
+    let bytes = generate_qr_png("custom size", &options)?;
+
     assert!(png_width(&bytes) >= 256);
+    assert!(png_height(&bytes) >= 256);
+
+    Ok(())
 }
 
 #[test]
-fn applies_zero_margin_to_png_output() {
-    // Arrange
+fn applies_zero_margin_to_png_output() -> Result<(), QrGenerationError> {
     let options = QrOptions { size: 1, margin: 0 };
 
-    // Act
-    let bytes = generate_qr_png("zero margin", &options)
-        .expect("text should generate PNG bytes without margin");
+    let bytes = generate_qr_png("zero margin", &options)?;
 
-    // Assert
     assert!(bytes.starts_with(PNG_HEADER));
+
+    Ok(())
 }
 
 #[test]
-fn applies_max_margin_to_png_output() {
-    // Arrange
+fn applies_max_margin_to_png_output() -> Result<(), QrGenerationError> {
     let options = QrOptions {
         size: 512,
         margin: 64,
     };
 
-    // Act
-    let bytes = generate_qr_png("max margin", &options).expect("text should generate PNG bytes");
+    let bytes = generate_qr_png("max margin", &options)?;
 
-    // Assert
     assert!(bytes.starts_with(PNG_HEADER));
+
+    Ok(())
 }
 
 #[test]
-fn accepts_max_size_and_max_margin() {
-    // Arrange
+fn accepts_max_size_and_max_margin() -> Result<(), QrGenerationError> {
     let options = QrOptions {
         size: 4096,
         margin: 64,
     };
 
-    // Act
-    let bytes = generate_qr_png("max options", &options)
-        .expect("text should generate PNG bytes with max options");
+    let bytes = generate_qr_png("max options", &options)?;
 
-    // Assert
     assert!(bytes.starts_with(PNG_HEADER));
+
+    Ok(())
 }
 
 #[test]
-fn applies_custom_margin_to_output_width() {
-    // Arrange
-    let without_margin = generate_qr_png("custom margin", &QrOptions { size: 1, margin: 0 })
-        .expect("text should generate PNG without margin");
-    let with_margin = generate_qr_png("custom margin", &QrOptions { size: 1, margin: 8 })
-        .expect("text should generate PNG with margin");
+fn applies_custom_margin_to_output_width() -> Result<(), QrGenerationError> {
+    let without_margin = generate_qr_png("custom margin", &QrOptions { size: 1, margin: 0 })?;
+    let with_margin = generate_qr_png("custom margin", &QrOptions { size: 1, margin: 8 })?;
 
-    // Assert
-    assert!(without_margin.starts_with(PNG_HEADER));
-    assert!(with_margin.starts_with(PNG_HEADER));
     assert!(png_width(&with_margin) > png_width(&without_margin));
+
+    Ok(())
 }
 
 #[test]
-fn renders_dark_module_at_image_origin_without_margin() {
-    // Arrange: size=1, margin=0 では 1 module = 1 pixel になる
+fn renders_dark_module_at_image_origin_without_margin() -> Result<(), QrGenerationError> {
+    // size=1, margin=0 では 1 module = 1 pixel になる。
     let options = QrOptions { size: 1, margin: 0 };
 
-    // Act
-    let image = decode_luma(
-        &generate_qr_png("module origin", &options).expect("text should generate PNG bytes"),
-    );
+    let image = decode_luma(&generate_qr_png("module origin", &options)?);
 
-    // Assert: finder pattern の左上 module は必ず dark
+    // finder pattern の左上 module は必ず dark。
     assert_eq!(image.get_pixel(0, 0)[0], DARK);
+
+    Ok(())
 }
 
 #[test]
-fn renders_quiet_zone_at_image_origin_with_margin() {
-    // Arrange
+fn renders_quiet_zone_at_image_origin_with_margin() -> Result<(), QrGenerationError> {
     let options = QrOptions { size: 1, margin: 2 };
 
-    // Act
-    let image = decode_luma(
-        &generate_qr_png("quiet zone", &options).expect("text should generate PNG bytes"),
-    );
+    let image = decode_luma(&generate_qr_png("quiet zone", &options)?);
 
-    // Assert
     assert_eq!(image.get_pixel(0, 0)[0], LIGHT);
+
+    Ok(())
 }
 
 #[test]
-fn offsets_modules_by_margin() {
-    // Arrange
+fn offsets_modules_by_margin() -> Result<(), QrGenerationError> {
     let options = QrOptions { size: 1, margin: 2 };
 
-    // Act
-    let image = decode_luma(
-        &generate_qr_png("margin offset", &options).expect("text should generate PNG bytes"),
-    );
+    let image = decode_luma(&generate_qr_png("margin offset", &options)?);
 
-    // Assert: finder pattern の左上 module が margin 分だけずれた位置に来る
+    // finder pattern の左上 module が margin 分だけずれた位置に来る。
     assert_eq!(image.get_pixel(2, 2)[0], DARK);
+
+    Ok(())
 }
 
 #[test]
-fn fills_whole_module_area_when_module_size_is_larger_than_one() {
+fn fills_whole_module_area_when_module_size_is_larger_than_one() -> Result<(), QrGenerationError> {
     const MODULE_SIZE: u32 = 3;
 
-    // Arrange: size=1, margin=0 の出力幅は QR module 数と一致するので、その 3 倍を指定すると
+    // size=1, margin=0 の出力幅は QR module 数と一致するので、その 3 倍を指定すると
     // 1 module = 3x3 pixel になる
-    let qr_width = png_width(
-        &generate_qr_png("module fill", &QrOptions { size: 1, margin: 0 })
-            .expect("text should generate PNG bytes"),
-    );
+    let qr_width = png_width(&generate_qr_png(
+        "module fill",
+        &QrOptions { size: 1, margin: 0 },
+    )?);
     let options = QrOptions {
         size: qr_width * MODULE_SIZE,
         margin: 0,
     };
 
-    // Act
-    let image = decode_luma(
-        &generate_qr_png("module fill", &options).expect("text should generate PNG bytes"),
-    );
+    let image = decode_luma(&generate_qr_png("module fill", &options)?);
 
-    // Assert: 左上 module の 3x3 全域が塗られている
+    // 左上 module の 3x3 全域が塗られている。
     assert!((0..MODULE_SIZE).all(|y| (0..MODULE_SIZE).all(|x| image.get_pixel(x, y)[0] == DARK)));
+
+    Ok(())
 }
 
 #[test]
-fn returns_error_for_zero_size() {
-    // Arrange
+fn returns_invalid_options_for_zero_size() {
     let options = QrOptions { size: 0, margin: 4 };
 
-    // Act
     let error =
         generate_qr_png("invalid size", &options).expect_err("zero size should be rejected");
 
-    // Assert
-    assert!(matches!(error, QrGenerationError::InvalidOptions(_)));
+    assert!(
+        matches!(error, QrGenerationError::InvalidOptions(_)),
+        "unexpected error: {error}"
+    );
 }
 
 #[test]
-fn returns_error_for_too_large_size() {
-    // Arrange
+fn returns_invalid_options_with_allowed_range_for_too_large_size() {
     let options = QrOptions {
         size: 4097,
         margin: 4,
     };
 
-    // Act
     let error =
         generate_qr_png("invalid size", &options).expect_err("too large size should be rejected");
 
-    // Assert
-    assert!(matches!(error, QrGenerationError::InvalidOptions(_)));
-}
-
-#[test]
-fn returns_error_for_too_large_margin() {
-    // Arrange
-    let options = QrOptions {
-        size: 512,
-        margin: 65,
-    };
-
-    // Act
-    let error = generate_qr_png("invalid margin", &options)
-        .expect_err("too large margin should be rejected");
-
-    // Assert
-    assert!(matches!(error, QrGenerationError::InvalidOptions(_)));
-}
-
-#[test]
-fn invalid_size_error_reports_allowed_size_range() {
-    // Arrange
-    let options = QrOptions {
-        size: 4097,
-        margin: 4,
-    };
-
-    // Act
-    let error =
-        generate_qr_png("invalid size", &options).expect_err("too large size should be rejected");
-
-    // Assert
+    assert!(
+        matches!(error, QrGenerationError::InvalidOptions(_)),
+        "unexpected error: {error}"
+    );
     assert_eq!(
         error.to_string(),
         "QR image size must be between 1 and 4096 pixels"
@@ -342,18 +290,19 @@ fn invalid_size_error_reports_allowed_size_range() {
 }
 
 #[test]
-fn invalid_margin_error_reports_allowed_margin_range() {
-    // Arrange
+fn returns_invalid_options_with_allowed_range_for_too_large_margin() {
     let options = QrOptions {
         size: 512,
         margin: 65,
     };
 
-    // Act
     let error = generate_qr_png("invalid margin", &options)
         .expect_err("too large margin should be rejected");
 
-    // Assert
+    assert!(
+        matches!(error, QrGenerationError::InvalidOptions(_)),
+        "unexpected error: {error}"
+    );
     assert_eq!(
         error.to_string(),
         "QR margin must be between 0 and 64 modules"
@@ -361,59 +310,55 @@ fn invalid_margin_error_reports_allowed_margin_range() {
 }
 
 #[test]
-fn returns_error_for_invalid_size_regardless_of_margin() {
-    // Arrange
+fn returns_invalid_options_for_too_large_size_regardless_of_margin() {
     let options = QrOptions {
         size: 4097,
         margin: 64,
     };
 
-    // Act
     let error = generate_qr_png("invalid options", &options)
         .expect_err("too large size should be rejected");
 
-    // Assert
-    assert!(matches!(error, QrGenerationError::InvalidOptions(_)));
+    assert!(
+        matches!(error, QrGenerationError::InvalidOptions(_)),
+        "unexpected error: {error}"
+    );
 }
 
 #[test]
 fn returns_qr_encoding_error_above_version_40_byte_capacity_at_ecc_m() {
-    // Arrange: byte mode の Version 40 / ECC-M 上限を 1 byte 超える
+    // byte mode の Version 40 / ECC-M 上限を 1 byte 超える。
     let text = "a".repeat(VERSION_40_BYTE_CAPACITY_AT_ECC_M + 1);
     let options = QrOptions::default();
 
-    // Act
     let error = generate_qr_png(&text, &options)
         .expect_err("text above the Version 40 byte capacity should be rejected at ECC-M");
 
-    // Assert
-    assert!(matches!(error, QrGenerationError::QrEncoding(_)));
+    assert!(
+        matches!(error, QrGenerationError::QrEncoding(_)),
+        "unexpected error: {error}"
+    );
 }
 
 #[test]
 fn blank_input_display_message_is_stable() {
-    // Arrange
     let error = QrGenerationError::BlankInput;
 
-    // Act
     let message = error.to_string();
 
-    // Assert
     assert_eq!(message, "QR text must not be blank");
 }
 
 #[test]
 fn invalid_options_display_uses_validation_message() {
-    // Arrange
     let error = QrGenerationError::InvalidOptions("custom validation message".to_string());
 
-    // Act
     let message = error.to_string();
 
-    // Assert
     assert_eq!(message, "custom validation message");
 }
 
+// 検証対象は QR 生成なので、image crate の decode 失敗はテスト基盤の失敗として扱う。
 fn decode_luma(bytes: &[u8]) -> image::GrayImage {
     image::load_from_memory(bytes)
         .expect("generated PNG should be decodable")

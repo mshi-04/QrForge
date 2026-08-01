@@ -39,6 +39,7 @@ rustup target add x86_64-linux-android
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --all-targets
+cargo test -p qrforge-core --doc
 cargo build --manifest-path rust/qrforge-jni/Cargo.toml
 ```
 
@@ -149,7 +150,7 @@ snapshot の更新は互換性を壊してよい理由にはならない。
 
 | 変更箇所 | 実行コマンド |
 |---------|------------|
-| Rust core（`rust/qrforge-core/`） | `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets -- -D warnings`、`cargo test --workspace --all-targets` |
+| Rust core（`rust/qrforge-core/`） | `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets -- -D warnings`、`cargo test --workspace --all-targets`、`cargo test -p qrforge-core --doc` |
 | Rust JNI bridge（`rust/qrforge-jni/`） | 上記に加えて `cargo build --manifest-path rust/qrforge-jni/Cargo.toml` |
 | `rust/` を変更して Android 側も確認する | 上記に加えて `.so` 再ビルドと `git diff --stat qrforge/src/main/jniLibs`（「`.so` の鮮度」参照） |
 | Kotlin wrapper（`qrforge/`） | `.\gradlew.bat :qrforge:assembleDebug`、`.\gradlew.bat :qrforge:testDebugUnitTest` |
@@ -183,7 +184,7 @@ workflow は `.github/workflows/ci.yml`。ローカルで先に潰しておく�
 | CI job | ローカルで相当するコマンド |
 |--------|--------------------------|
 | `consistency` | `python scripts/check_repo_consistency.py` |
-| `rust` | `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets -- -D warnings`、`cargo test --workspace --all-targets`、`cargo build --manifest-path rust/qrforge-jni/Cargo.toml`、`cargo ndk`（3 ABI の `.so` 生成確認まで） |
+| `rust` | `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets -- -D warnings`、`cargo test --workspace --all-targets`、`cargo test -p qrforge-core --doc`、`cargo build --manifest-path rust/qrforge-jni/Cargo.toml`、`cargo ndk`（3 ABI の `.so` 生成確認まで） |
 | `rust-audit` | `cargo deny check` |
 | `kotlin-lint` | `.\gradlew.bat :qrforge:ktlintCheck :app:ktlintCheck ktlintKotlinScriptCheck` |
 | `android` | `.\gradlew.bat :qrforge:assembleRelease` と `python scripts/check_public_api.py`、`.\gradlew.bat :qrforge:testDebugUnitTest :qrforge:assembleDebug :qrforge:assembleDebugAndroidTest :app:assembleDebug` |

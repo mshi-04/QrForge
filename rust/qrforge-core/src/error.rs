@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 
+/// Errors returned by [`crate::generate_qr_png`].
 #[derive(Debug)]
 pub enum QrGenerationError {
     BlankInput,

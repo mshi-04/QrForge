@@ -99,6 +99,7 @@ rustup target add x86_64-linux-android
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --all-targets
+cargo test -p qrforge-core --doc
 cargo build --manifest-path rust/qrforge-jni/Cargo.toml
 cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o qrforge/src/main/jniLibs build --release --manifest-path rust/qrforge-jni/Cargo.toml
 .\gradlew.bat :qrforge:testDebugUnitTest

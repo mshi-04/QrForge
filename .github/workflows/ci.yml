@@ -69,6 +69,11 @@ jobs:
       - name: Test Rust workspace
         run: cargo test --workspace --all-targets
 
+      # cargo test --workspace --all-targets は doc test を含まないため別 step にする。
+      # qrforge-jni は cdylib で doc test を持てず --workspace だと warning が出るので package 指定。
+      - name: Test Rust documentation
+        run: cargo test -p qrforge-core --doc
+
       - name: Build Rust JNI crate
         run: cargo build --manifest-path rust/qrforge-jni/Cargo.toml
 
