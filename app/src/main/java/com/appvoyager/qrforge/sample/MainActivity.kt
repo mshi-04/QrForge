@@ -29,7 +29,7 @@ class MainActivity : AppCompatActivity() {
         try {
             binding.qrImage.setImageBitmap(QrGenerator.createBitmap(text))
             binding.statusText.setText(R.string.qr_generation_success)
-        } catch (error: QrGenerationException.NativeLibraryUnavailable) {
+        } catch (_: QrGenerationException.NativeLibraryUnavailable) {
             binding.qrImage.setImageDrawable(null)
             binding.statusText.setText(R.string.qr_native_unavailable)
         } catch (error: QrGenerationException) {

@@ -118,21 +118,29 @@ class QrGeneratorInputValidationTest {
     fun createPngBytesPassesOptionsUnchanged() {
         // Arrange
         val options = QrOptions(size = 768, margin = 6)
-        var receivedOptions: Pair<Int, Int>? = null
+        var receivedOptions: ReceivedOptions? = null
 
         // Act
         QrGenerator.createPngBytes(
             text = "text",
             options = options,
             generateQrPng = { _, size, margin ->
-                receivedOptions = size to margin
+                receivedOptions = ReceivedOptions(size = size, margin = margin)
                 byteArrayOf(1)
             },
         )
 
         // Assert
-        assertEquals(options.size to options.margin, receivedOptions)
+        assertEquals(
+            ReceivedOptions(size = options.size, margin = options.margin),
+            receivedOptions,
+        )
     }
+
+    private data class ReceivedOptions(
+        val size: Int,
+        val margin: Int,
+    )
 
     private fun generateStubPng(
         @Suppress("UNUSED_PARAMETER") text: String,
