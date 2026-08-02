@@ -10,11 +10,11 @@ description: >
 ## 手順
 
 1. レビュー対象の差分を確定する（下記「対象の確定」参照）
-2. `docs/review-rules.md` を読む
+2. [docs/review-rules.md](../../../docs/review-rules.md) を読む
 3. 差分を読み、変更レイヤーに関係する docs を読む（下記「読む docs」参照）
-4. `docs/review-rules.md` の「見る順序」に沿って確認する
-5. `docs/review-rules.md` の「事実確認」に照らし、断定と推測を分ける
-6. `docs/review-rules.md` の分類とフォーマットで、重要度順に指摘する
+4. [docs/review-rules.md](../../../docs/review-rules.md) の「見る順序」に沿って確認する
+5. [docs/review-rules.md](../../../docs/review-rules.md) の「事実確認」に照らし、断定と推測を分ける
+6. [docs/review-rules.md](../../../docs/review-rules.md) の分類とフォーマットで、重要度順に指摘する
 7. 確認した観点と残るリスクを書く
 
 ## 対象の確定
@@ -35,16 +35,16 @@ description: >
 
 | 状況 | 読む docs |
 |------|-----------|
-| 常に | `docs/review-rules.md` |
-| レイヤー責務・依存方向を判断する | `docs/architecture.md` |
-| 実装ルール違反かを判断する | `docs/coding-rules.md` |
-| public API・例外の変更がある | `docs/api-design.md` |
-| テストの追加・変更がある | `docs/unit-test.md` |
-| 確認コマンドの結果が妥当かを判断する | `docs/setup.md` |
+| 常に | [docs/review-rules.md](../../../docs/review-rules.md) |
+| レイヤー責務・依存方向を判断する | [docs/architecture.md](../../../docs/architecture.md) |
+| 実装ルール違反かを判断する | [docs/coding-rules.md](../../../docs/coding-rules.md) |
+| public API・例外の変更がある | [docs/api-design.md](../../../docs/api-design.md) |
+| テストの追加・変更がある | [docs/unit-test.md](../../../docs/unit-test.md) |
+| 確認コマンドの結果が妥当かを判断する | [docs/setup.md](../../../docs/setup.md) |
 
 ## 出力
 
-`docs/review-rules.md` の「出力フォーマット」に従う。指摘がない分類には `該当なし` と書く。
+[docs/review-rules.md](../../../docs/review-rules.md) の「出力フォーマット」に従う。指摘がない分類には `該当なし` と書く。
 
 冒頭に、確定したレビュー対象（PR 番号、比較対象、コミット範囲）を 1 行で書く。読み手が範囲の
 妥当性を検証できるようにするため。

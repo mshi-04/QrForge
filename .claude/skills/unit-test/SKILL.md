@@ -11,24 +11,25 @@ description: >
 ## 手順
 
 1. 検証したい振る舞いを 1 文で言語化する
-2. `docs/unit-test.md` の配置と境界に従って置き場所を決める
-3. `docs/unit-test.md` の書き方に従って書く
-4. `docs/setup.md` で `.so` の鮮度、端末要否、実行コマンドを確認する
+2. [docs/unit-test.md](../../../docs/unit-test.md) の配置と境界に従って置き場所を決める
+3. [docs/unit-test.md](../../../docs/unit-test.md) の書き方に従って書く
+4. [docs/setup.md](../../../docs/setup.md) で `.so` の鮮度、端末要否、実行コマンドを確認する
 5. 実行する
 6. 報告する（下記「報告」参照）
 
-途中で、落ちている原因がテストではなく実装側だと分かったら `coding` の手順に切り替える。
-`docs/coding-rules.md` を読まずに実装へ手を入れると、テストを通すためだけの修正になりやすい。
+途中で、落ちている原因がテストではなく実装側だと分かったら [coding skill](../coding/SKILL.md) の
+手順に切り替える。[docs/coding-rules.md](../../../docs/coding-rules.md) を読まずに実装へ手を入れると、
+テストを通すためだけの修正になりやすい。
 
 ## 読む docs
 
 | 迷っていること | 読む docs |
 |---------------|-----------|
-| 置き場所、境界、書き方 | `docs/unit-test.md` |
-| その振る舞いがどのレイヤーの責務か | `docs/architecture.md` |
-| 期待値が公開 API の契約に沿っているか（`size` は最小値であって出力寸法ではない、など） | `docs/api-design.md` |
-| テスト都合の `internal` や可視性の扱い | `docs/coding-rules.md` |
-| `.so` の鮮度、端末要否、実行コマンド | `docs/setup.md` |
+| 置き場所、境界、書き方 | [docs/unit-test.md](../../../docs/unit-test.md) |
+| その振る舞いがどのレイヤーの責務か | [docs/architecture.md](../../../docs/architecture.md) |
+| 期待値が公開 API の契約に沿っているか（`size` は最小値であって出力寸法ではない、など） | [docs/api-design.md](../../../docs/api-design.md) |
+| テスト都合の `internal` や可視性の扱い | [docs/coding-rules.md](../../../docs/coding-rules.md) |
+| `.so` の鮮度、端末要否、実行コマンド | [docs/setup.md](../../../docs/setup.md) |
 
 ## 報告
 
