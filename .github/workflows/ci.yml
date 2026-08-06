@@ -6,9 +6,6 @@ on:
       - main
       - develop
   pull_request:
-    branches:
-      - main
-      - develop
     types:
       - opened
       - synchronize
@@ -69,10 +66,10 @@ jobs:
         run: cargo test --workspace --all-targets
 
       - name: Test Rust documentation
-        run: cargo test -p qrforge-core --doc
+        run: cargo test -p qr-forge-core --doc
 
       - name: Build Rust JNI crate
-        run: cargo build --manifest-path rust/qrforge-jni/Cargo.toml
+        run: cargo build --manifest-path rust/qr-forge-jni/Cargo.toml
 
       - name: Install Android NDK
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;27.2.12479018"
@@ -84,13 +81,13 @@ jobs:
         run: |
           export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/27.2.12479018"
           export ANDROID_NDK_ROOT="$ANDROID_NDK_HOME"
-          cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o "$RUNNER_TEMP/qrforge-jniLibs" build --release --manifest-path rust/qrforge-jni/Cargo.toml
+          cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o "$RUNNER_TEMP/qr-forge-jniLibs" build --release --manifest-path rust/qr-forge-jni/Cargo.toml
 
       - name: Check native libraries were generated
         run: |
-          test -f "$RUNNER_TEMP/qrforge-jniLibs/arm64-v8a/libqrforge.so"
-          test -f "$RUNNER_TEMP/qrforge-jniLibs/armeabi-v7a/libqrforge.so"
-          test -f "$RUNNER_TEMP/qrforge-jniLibs/x86_64/libqrforge.so"
+          test -f "$RUNNER_TEMP/qr-forge-jniLibs/arm64-v8a/libqrforge.so"
+          test -f "$RUNNER_TEMP/qr-forge-jniLibs/armeabi-v7a/libqrforge.so"
+          test -f "$RUNNER_TEMP/qr-forge-jniLibs/x86_64/libqrforge.so"
 
   rust-audit:
     name: Rust Audit
@@ -134,7 +131,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Check Kotlin format and style
-        run: ./gradlew :qrforge:ktlintCheck :app:ktlintCheck ktlintKotlinScriptCheck --no-daemon
+        run: ./gradlew :qr-forge:ktlintCheck :app:ktlintCheck ktlintKotlinScriptCheck --no-daemon
 
   android:
     name: Android Build
@@ -161,11 +158,11 @@ jobs:
 
       - name: Check public API compatibility
         run: |
-          ./gradlew :qrforge:assembleRelease :qrforge:generatePomFileForMavenPublication --no-daemon
+          ./gradlew :qr-forge:assembleRelease :qr-forge:generatePomFileForMavenPublication --no-daemon
           python3 scripts/check_public_api.py
 
       - name: Run Android checks
-        run: ./gradlew :qrforge:testDebugUnitTest :qrforge:assembleDebug :qrforge:assembleDebugAndroidTest :app:assembleDebug --no-daemon
+        run: ./gradlew :qr-forge:testDebugUnitTest :qr-forge:assembleDebug :qr-forge:assembleDebugAndroidTest :app:assembleDebug --no-daemon
 
   instrumented:
     name: Instrumented Test (API ${{ matrix.api-level }})
@@ -193,7 +190,7 @@ jobs:
           java-version: "17"
 
       - name: Check committed x86_64 native library
-        run: test -f qrforge/src/main/jniLibs/x86_64/libqrforge.so
+        run: test -f qr-forge/src/main/jniLibs/x86_64/libqrforge.so
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
@@ -216,4 +213,4 @@ jobs:
           arch: x86_64
           target: ${{ matrix.target }}
           disable-animations: true
-          script: ./gradlew :qrforge:connectedDebugAndroidTest --no-daemon
+          script: ./gradlew :qr-forge:connectedDebugAndroidTest --no-daemon

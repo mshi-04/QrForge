@@ -1,4 +1,4 @@
-use qrforge_core::{generate_qr_png, QrGenerationError, QrOptions};
+use qr_forge_core::{generate_qr_png, QrGenerationError, QrOptions};
 
 const PNG_HEADER: &[u8; 8] = b"\x89PNG\r\n\x1a\n";
 const DARK: u8 = 0;

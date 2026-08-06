@@ -58,4 +58,4 @@ jobs:
             echo "Maven Central credentials and signing key must be configured." >&2
             exit 1
           fi
-          ./gradlew :qrforge:publishAndReleaseToMavenCentral --no-daemon --no-configuration-cache
+          ./gradlew :qr-forge:publishAndReleaseToMavenCentral --no-daemon --no-configuration-cache

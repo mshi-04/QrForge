@@ -120,7 +120,7 @@ The Android library module packages `libqrforge.so` for each supported ABI.
 ## Availability
 
 Published versions are available from Maven Central as `io.github.lambdarc:qr-forge:<version>`.
-Before the first release, QrForge can be used as the `:qrforge` Android library module in this repository.
+Before the first release, QrForge can be used as the `:qr-forge` Android library module in this repository.
 
 ## License
 

@@ -47,8 +47,8 @@ impl Default for QrOptions {
 /// # Examples
 ///
 /// ```
-/// use qrforge_core::{generate_qr_png, QrOptions};
-/// # use qrforge_core::QrGenerationError;
+/// use qr_forge_core::{generate_qr_png, QrOptions};
+/// # use qr_forge_core::QrGenerationError;
 ///
 /// # fn main() -> Result<(), QrGenerationError> {
 /// let options = QrOptions {
