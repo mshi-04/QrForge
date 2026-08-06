@@ -162,6 +162,57 @@ snapshot の更新は互換性を壊してよい理由にはならない。
 | ABI 追加・削除 | `.so` 再ビルド、`abiFilters`、README・本文書・CI をまとめて更新 |
 | docs のみ | `git diff --stat` でコード変更が混ざっていないことを確認 |
 
+## Maven Central への公開
+
+公開座標は `io.github.lambdarc:qr-forge:<version>`。release AAR、sources JAR、空の javadoc JAR、
+POM、Gradle Module Metadata を `:qrforge` から公開する。公開 API と native library は release AAR に
+含まれるものを正典とし、sample app や Rust crate は Maven Central へ公開しない。
+
+### 初回だけ必要な設定
+
+1. Central Portal でアカウントを作成し、`io.github.lambdarc` namespace を登録・検証する。
+2. artifact 署名用の GPG key pair を作成し、public key server へ公開する。
+3. Central Portal の user token を作成する。
+4. GitHub Actions に次の repository secrets を登録する。
+
+| Secret | 内容 |
+|--------|------|
+| `MAVEN_CENTRAL_USERNAME` | Central Portal user token の username |
+| `MAVEN_CENTRAL_PASSWORD` | Central Portal user token の password |
+| `SIGNING_IN_MEMORY_KEY` | ASCII armor 形式で export した GPG private key 全体 |
+| `SIGNING_IN_MEMORY_KEY_PASSWORD` | GPG private key の passphrase。passphrase なしなら空文字列 |
+
+secret は project の `gradle.properties` や workflow 本文へ直接書かない。
+
+### 公開手順
+
+`develop` で CI が成功し、公開する commit が確定したら `vMAJOR.MINOR.PATCH` 形式の tag を push する。
+Release workflow が tag の先頭 `v` を除いた値を Maven version として渡し、署名後に Central Portal へ
+upload・release する。Central は同じ座標・version の上書きを許可しないため、公開済み tag は再利用しない。
+
+```powershell
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+公開前に publication と POM をローカルで確認する。
+
+```powershell
+.\gradlew.bat :qrforge:assembleRelease :qrforge:generatePomFileForMavenPublication
+Get-Content qrforge/build/publications/maven/pom-default.xml
+```
+
+資格情報と署名 key を設定した環境から手動公開する場合は次を使う。
+
+```powershell
+.\gradlew.bat :qrforge:publishAndReleaseToMavenCentral `
+  "-PVERSION_NAME=1.0.0" `
+  "-PsignAllPublications=true"
+```
+
+`VERSION_NAME` を省略したローカル build は `1.0.0-SNAPSHOT` として扱う。公開前には生成された POM の
+座標、MIT license、SCM、developer 情報と、release AAR の 3 ABI を確認する。
+
 ## repository の整合性確認
 
 Codex 用の `.agents/skills/` と Claude Code 用の `.claude/skills/` は、それぞれの仕組みに合わせて
@@ -187,7 +238,7 @@ workflow は `.github/workflows/ci.yml`。ローカルで先に潰しておく�
 | `rust` | `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets -- -D warnings`、`cargo test --workspace --all-targets`、`cargo test -p qrforge-core --doc`、`cargo build --manifest-path rust/qrforge-jni/Cargo.toml`、`cargo ndk`（3 ABI の `.so` 生成確認まで） |
 | `rust-audit` | `cargo deny check` |
 | `kotlin-lint` | `.\gradlew.bat :qrforge:ktlintCheck :app:ktlintCheck ktlintKotlinScriptCheck` |
-| `android` | `.\gradlew.bat :qrforge:assembleRelease` と `python scripts/check_public_api.py`、`.\gradlew.bat :qrforge:testDebugUnitTest :qrforge:assembleDebug :qrforge:assembleDebugAndroidTest :app:assembleDebug` |
+| `android` | `.\gradlew.bat :qrforge:assembleRelease :qrforge:generatePomFileForMavenPublication` と `python scripts/check_public_api.py`、`.\gradlew.bat :qrforge:testDebugUnitTest :qrforge:assembleDebug :qrforge:assembleDebugAndroidTest :app:assembleDebug` |
 | `instrumented` | repository にコミット済みの `x86_64` `.so` を使う `.\gradlew.bat :qrforge:connectedDebugAndroidTest`（CI は API 28 / 34 emulator） |
 
 `kotlin-lint` の指摘は `.\gradlew.bat ktlintFormat` で自動修正できる。code style と適用しない

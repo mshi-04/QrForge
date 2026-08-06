@@ -161,7 +161,7 @@ jobs:
 
       - name: Check public API compatibility
         run: |
-          ./gradlew :qrforge:assembleRelease --no-daemon
+          ./gradlew :qrforge:assembleRelease :qrforge:generatePomFileForMavenPublication --no-daemon
           python3 scripts/check_public_api.py
 
       - name: Run Android checks

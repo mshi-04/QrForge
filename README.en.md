@@ -15,6 +15,14 @@ Its public API is centered on `QrGenerator`, while QR generation and PNG encodin
 
 ## Usage
 
+Add the Maven Central dependency to your app's `build.gradle.kts`:
+
+```kotlin
+dependencies {
+    implementation("io.github.lambdarc:qr-forge:1.0.0")
+}
+```
+
 ### Generate a Bitmap
 
 ```kotlin
@@ -111,4 +119,9 @@ The Android library module packages `libqrforge.so` for each supported ABI.
 
 ## Availability
 
-QrForge is currently available as the `:qrforge` Android library module in this repository.
+Published versions are available from Maven Central as `io.github.lambdarc:qr-forge:<version>`.
+Before the first release, QrForge can be used as the `:qrforge` Android library module in this repository.
+
+## License
+
+[MIT License](LICENSE)
