@@ -15,7 +15,6 @@ on:
       - reopened
       - ready_for_review
   schedule:
-    # 毎週月曜 06:00 JST。コード変更なしに公開される advisory を検出する。
     - cron: "0 21 * * 0"
   workflow_dispatch:
 
@@ -69,8 +68,6 @@ jobs:
       - name: Test Rust workspace
         run: cargo test --workspace --all-targets
 
-      # cargo test --workspace --all-targets は doc test を含まないため別 step にする。
-      # qrforge-jni は cdylib で doc test を持てず --workspace だと warning が出るので package 指定。
       - name: Test Rust documentation
         run: cargo test -p qrforge-core --doc
 
@@ -136,8 +133,6 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
-      # lifecycle task ではなく個別の task path を指定する。built-in Kotlin の source set
-      # 検出が壊れた場合に、0 件 lint して成功するのではなく task not found で落とすため。
       - name: Check Kotlin format and style
         run: ./gradlew :qrforge:ktlintCheck :app:ktlintCheck ktlintKotlinScriptCheck --no-daemon
 
@@ -159,12 +154,6 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
         with:
-          # cache を書くのはこの job だけにする。setup-gradle は Gradle User Home を内容
-          # ハッシュ単位の bundle に分けて保存するため、解決する依存の集合が違う job が
-          # 書き込むと数百 MiB の bundle がその数だけ増える。この job が最も広い依存を
-          # 解決するので、他 job が読む分もここで賄える。
-          # develop でだけ生成し、feature branch は develop 向け PR の base branch cache
-          # としてこれを使い回す。
           cache-read-only: ${{ github.ref != 'refs/heads/develop' }}
 
       - name: Make Gradle wrapper executable
@@ -182,13 +171,11 @@ jobs:
     name: Instrumented Test (API ${{ matrix.api-level }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    # 週次実行で emulator を 2 本起動する価値は薄い。
     if: github.event_name != 'schedule'
     strategy:
       fail-fast: false
       matrix:
         include:
-          # minSdk。Google APIs を使わないため default image で足りる。
           - api-level: 28
             target: default
           - api-level: 34
