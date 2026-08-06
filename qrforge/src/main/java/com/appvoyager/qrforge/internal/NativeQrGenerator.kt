@@ -37,8 +37,6 @@ internal object NativeQrGenerator {
     @JvmStatic
     private external fun nativeGenerateQrPng(text: String, size: Int, margin: Int): ByteArray
 
-    // UnsatisfiedLinkError は library load 時と entry point 解決時の両方で起き得るので、
-    // NativeLibraryUnavailable への変換をここに一本化する。
     private inline fun <T> mapLinkError(message: String, block: () -> T): T = try {
         block()
     } catch (error: UnsatisfiedLinkError) {

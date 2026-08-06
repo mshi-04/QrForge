@@ -8,8 +8,6 @@ use qrcode::QrCode;
 
 pub use error::QrGenerationError;
 
-// QrOptions の値域はこの crate を正典とし、Kotlin 側 `QrOptions` の companion 定数と
-// 同じ値を保つ。変更時は docs/api-design.md の「定数同期」表も合わせて更新する。
 const DEFAULT_IMAGE_SIZE: u32 = 512;
 const DEFAULT_MARGIN: u32 = 4;
 const MIN_IMAGE_SIZE: u32 = 1;
@@ -80,8 +78,6 @@ pub fn generate_qr_png(text: &str, options: &QrOptions) -> Result<Vec<u8>, QrGen
 }
 
 fn is_contract_whitespace(character: char) -> bool {
-    // Kotlin/JVM の Char.isWhitespace と同じ契約にする。Rust の Unicode White_Space との差は、
-    // U+001C..U+001F を追加し、NEXT LINE (U+0085) を除外する点。
     matches!(character, '\u{001C}'..='\u{001F}')
         || (character.is_whitespace() && character != '\u{0085}')
 }
@@ -103,7 +99,6 @@ fn validate_options(options: &QrOptions) -> Result<(), QrGenerationError> {
 }
 
 fn render_qr_image(code: &QrCode, options: &QrOptions) -> RenderedQrImage {
-    // QR version 40 (max) の幅は 177 modules — u32 に確実に収まる
     let qr_width = code.width() as u32;
     let total_modules = qr_width + options.margin * 2;
     let module_size = options.size.div_ceil(total_modules);
@@ -133,8 +128,6 @@ fn draw_module(
     margin: u32,
     module_size: u32,
 ) {
-    // Grayscale 8-bit は 1 ピクセル 1 バイトなので、raw buffer の行スライスをまとめて塗る。
-    // module rounding を含む最大出力 (4368x4368) でもピクセル単位の処理を避けられる。
     let start_x = ((module_x + margin) * module_size) as usize;
     let start_y = ((module_y + margin) * module_size) as usize;
     let module_size = module_size as usize;

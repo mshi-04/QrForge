@@ -21,8 +21,6 @@ pub extern "system" fn Java_com_appvoyager_qrforge_internal_NativeQrGenerator_na
     size: jint,
     margin: jint,
 ) -> jbyteArray {
-    // JavaStr からの借用ゼロコピーも可能だが、後段の env 可変借用と競合するため
-    // 所有権を持つ String に変換する。入力サイズは小さく性能影響は無視できる。
     let text_str: String = match env.get_string(&text) {
         Ok(s) => s.into(),
         Err(e) => {
@@ -77,8 +75,6 @@ pub extern "system" fn Java_com_appvoyager_qrforge_internal_NativeQrGenerator_na
 }
 
 fn options_from_jni(size: jint, margin: jint) -> Result<QrOptions, &'static str> {
-    // JNI 境界では u32 への変換安全性のみを保証する。
-    // 値域の妥当性は qrforge_core::validate_options が一元的に検証する。
     if size < 0 {
         return Err("QR image size must not be negative");
     }
@@ -106,8 +102,6 @@ fn throw_qr_error(env: &mut JNIEnv<'_>, error: QrGenerationError) {
 }
 
 fn throw_or_fatal(env: &mut JNIEnv<'_>, class: &str, message: &str) {
-    // JNI 呼び出しの失敗は Java 例外が pending 状態のことがある。その場合は元の例外を
-    // そのまま伝播させ、こちらの例外で上書きしない。
     if matches!(env.exception_check(), Ok(true)) {
         return;
     }

@@ -3,10 +3,6 @@ plugins {
     alias(libs.plugins.ktlint)
 }
 
-ktlint {
-    version.set(libs.versions.ktlint.cli.get())
-}
-
 android {
     namespace = "com.appvoyager.qrforge.sample"
     compileSdk {
@@ -28,10 +24,6 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro",
-            )
         }
     }
     compileOptions {

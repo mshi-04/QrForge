@@ -7,12 +7,8 @@ import com.appvoyager.qrforge.internal.NativeQrGenerator
 object QrGenerator {
     private val DEFAULT_OPTIONS = QrOptions()
 
-    // ARGB_8888 (BitmapFactory の既定構成) は 1 ピクセル 4 バイト。
     private const val BITMAP_BYTES_PER_PIXEL = 4
 
-    // デコード後 Bitmap の確保メモリ上限。QrOptions.MAX_SIZE から生成され得る最大寸法
-    // (最大 4368x4368 ≒ 73MiB) に余裕を持たせた値。これを超える確保は捕捉不能な
-    // OutOfMemoryError になる前に QrGenerationException で明示的に失敗させる。
     private const val MAX_BITMAP_BYTES = 128L * 1024 * 1024
 
     @JvmOverloads
@@ -24,7 +20,6 @@ object QrGenerator {
             BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                 ?: throw QrGenerationException.DecodeFailed("Generated PNG could not be decoded")
         } catch (error: OutOfMemoryError) {
-            // デコード時の一括確保で枯渇した場合、捕捉可能な型付き例外に変換して返す。
             throw QrGenerationException.DecodeFailed(
                 "Generated QR image is too large to allocate as a Bitmap",
                 error,
@@ -59,7 +54,6 @@ object QrGenerator {
     }
 
     private fun ensureDecodableWithinBudget(bytes: ByteArray) {
-        // inJustDecodeBounds で寸法のみ取得し、巨大確保の前に予算を検査する。
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
         ensureWithinBitmapBudget(bounds.outWidth, bounds.outHeight)
@@ -70,12 +64,9 @@ object QrGenerator {
     @JvmSynthetic
     internal fun ensureWithinBitmapBudget(width: Int, height: Int) {
         if (width <= 0 || height <= 0) {
-            // 寸法を取得できなかった場合は後続の実デコードにエラー処理を委ねる。
             return
         }
 
-        // width * height * 4 の乗算前に除算で比較し、Long オーバーフローを回避する。
-        // width と height は正の Int なので、Long へ変換した積は Long の範囲内に収まる。
         val maxPixels = MAX_BITMAP_BYTES / BITMAP_BYTES_PER_PIXEL
         if (width.toLong() * height.toLong() > maxPixels) {
             throw QrGenerationException.DecodeFailed(
