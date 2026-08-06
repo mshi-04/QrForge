@@ -5,7 +5,7 @@ use std::panic::catch_unwind;
 use jni::objects::{JClass, JString};
 use jni::sys::{jbyteArray, jint};
 use jni::JNIEnv;
-use qrforge_core::{generate_qr_png, QrGenerationError, QrOptions};
+use qr_forge_core::{generate_qr_png, QrGenerationError, QrOptions};
 
 const GENERATION_FAILED_CLASS: &str =
     "com/appvoyager/qrforge/internal/NativeQrGenerator$GenerationFailed";

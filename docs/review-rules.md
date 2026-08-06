@@ -53,7 +53,7 @@
 
 **「テストが通った」で止まらない。** その結果が今回の変更を検証できているかまで見る。
 
-- `rust/` に変更があるのに `qrforge/src/main/jniLibs/*.so` が差分に無い場合、ローカルと CI の
+- `rust/` に変更があるのに `qr-forge/src/main/jniLibs/*.so` が差分に無い場合、ローカルと CI の
   instrumented test は**コミット済みの変更前**の native library に対するもの。CI の `rust` job は
   現在の source から 3 ABI を別途ビルドするが、コミット済み `.so` との一致までは検証しないため、
   両 job が緑でも `.so` が古い可能性は残る。

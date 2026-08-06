@@ -13,10 +13,10 @@
 
 ```text
 app (sample)
-  └→ Kotlin wrapper        qrforge/src/main/java/com/appvoyager/qrforge/
-       └→ Kotlin JNI binding  qrforge/src/main/java/com/appvoyager/qrforge/internal/
-            └→ Rust JNI bridge   rust/qrforge-jni/
-                 └→ Rust core       rust/qrforge-core/
+  └→ Kotlin wrapper        qr-forge/src/main/java/com/appvoyager/qrforge/
+       └→ Kotlin JNI binding  qr-forge/src/main/java/com/appvoyager/qrforge/internal/
+            └→ Rust JNI bridge   rust/qr-forge-jni/
+                 └→ Rust core       rust/qr-forge-core/
 ```
 
 依存は上から下の一方向のみ。Rust core は Android・JNI・Kotlin を知らない。
@@ -24,12 +24,12 @@ app (sample)
 | レイヤ | 配置 | 成果物 |
 |--------|------|--------|
 | sample app | `app/` | 動作確認用 APK |
-| Kotlin wrapper | `qrforge/src/main/java/com/appvoyager/qrforge/` | public API |
+| Kotlin wrapper | `qr-forge/src/main/java/com/appvoyager/qrforge/` | public API |
 | Kotlin JNI binding | `.../qrforge/internal/` | `internal` な native binding |
-| Rust JNI bridge | `rust/qrforge-jni/` | `libqrforge.so`（cdylib） |
-| Rust core | `rust/qrforge-core/` | rlib（Android 非依存） |
+| Rust JNI bridge | `rust/qr-forge-jni/` | `libqrforge.so`（cdylib） |
+| Rust core | `rust/qr-forge-core/` | rlib（Android 非依存） |
 
-`libqrforge.so` は `qrforge/src/main/jniLibs/<abi>/` に置く。`app/src/main/jniLibs` には置かない。
+`libqrforge.so` は `qr-forge/src/main/jniLibs/<abi>/` に置く。`app/src/main/jniLibs` には置かない。
 
 ## 生成フロー
 
