@@ -118,12 +118,12 @@ module_size = ceil(size / (qr_width + margin * 2))
 
 | 定数 | 値 | 定義箇所 |
 |------|----|---------|
-| `DEFAULT_SIZE` | 512 | `QrOptions.kt`, `qr-forge-core/src/lib.rs` |
-| `DEFAULT_MARGIN` | 4 | `QrOptions.kt`, `qr-forge-core/src/lib.rs` |
-| `MIN_SIZE` | 1 | `QrOptions.kt`, `qr-forge-core/src/lib.rs` |
-| `MAX_SIZE` | 4096 | `QrOptions.kt`, `qr-forge-core/src/lib.rs` |
-| `MIN_MARGIN` | 0 | `QrOptions.kt`, `qr-forge-core/src/lib.rs` |
-| `MAX_MARGIN` | 64 | `QrOptions.kt`, `qr-forge-core/src/lib.rs` |
+| `DEFAULT_SIZE` | 512 | `QrOptions.kt`, `rust/qr-forge-core/src/lib.rs` |
+| `DEFAULT_MARGIN` | 4 | `QrOptions.kt`, `rust/qr-forge-core/src/lib.rs` |
+| `MIN_SIZE` | 1 | `QrOptions.kt`, `rust/qr-forge-core/src/lib.rs` |
+| `MAX_SIZE` | 4096 | `QrOptions.kt`, `rust/qr-forge-core/src/lib.rs` |
+| `MIN_MARGIN` | 0 | `QrOptions.kt`, `rust/qr-forge-core/src/lib.rs` |
+| `MAX_MARGIN` | 64 | `QrOptions.kt`, `rust/qr-forge-core/src/lib.rs` |
 
 Rust core の値域エラー文言はこれらの定数から組み立てるため、値を変えればメッセージも追従する。
 Kotlin 側の `require` メッセージも同様に定数を埋め込む。
