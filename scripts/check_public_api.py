@@ -15,7 +15,11 @@ from pathlib import Path
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 AAR_PATH = REPOSITORY_ROOT / "qr-forge" / "build" / "outputs" / "aar" / "qr-forge-release.aar"
 SNAPSHOT_PATH = REPOSITORY_ROOT / "qr-forge" / "api" / "qrforge.api"
-ASSEMBLE_COMMAND = "gradlew :qr-forge:assembleRelease"
+ASSEMBLE_COMMAND = (
+    r".\gradlew.bat :qr-forge:assembleRelease"
+    if os.name == "nt"
+    else "./gradlew :qr-forge:assembleRelease"
+)
 INTERNAL_PACKAGE_PREFIX = "com.appvoyager.qrforge.internal."
 SOURCE_FILE_MARKER = "Compiled from "
 DEFAULT_CONSTRUCTOR_MARKER = "kotlin.jvm.internal.DefaultConstructorMarker"

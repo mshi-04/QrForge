@@ -168,12 +168,19 @@ snapshot の更新は互換性を壊してよい理由にはならない。
 POM、Gradle Module Metadata を `:qr-forge` から公開する。公開 API と native library は release AAR に
 含まれるものを正典とし、sample app や Rust crate は Maven Central へ公開しない。
 
+artifact ID、Gradle project/module、Rust package などの機械識別子には `qr-forge` を使う。POM の
+`name` は利用者向けのブランド表示なので `QrForge`、sample app の表示名は `QrForge Sample` とする。
+
 ### 初回だけ必要な設定
 
 1. Central Portal でアカウントを作成し、`io.github.lambdarc` namespace を登録・検証する。
 2. artifact 署名用の GPG key pair を作成し、public key server へ公開する。
 3. Central Portal の user token を作成する。
-4. GitHub Actions に次の repository secrets を登録する。
+4. `v*` を対象にする active な tag ruleset を作り、tag の作成・更新・削除を制限する。release 担当者
+   だけに bypass を許可する。
+5. GitHub Actions に `release` environment を作り、required reviewer と `v*` tag だけを許可する
+   deployment rule を設定する。可能なら workflow 実行者自身による承認と管理者 bypass を禁止する。
+6. `release` environment に次の secrets を登録する。
 
 | Secret | 内容 |
 |--------|------|
@@ -182,13 +189,14 @@ POM、Gradle Module Metadata を `:qr-forge` から公開する。公開 API と
 | `SIGNING_IN_MEMORY_KEY` | ASCII armor 形式で export した GPG private key 全体 |
 | `SIGNING_IN_MEMORY_KEY_PASSWORD` | GPG private key の passphrase。passphrase なしなら空文字列 |
 
-secret は project の `gradle.properties` や workflow 本文へ直接書かない。
+secret は repository secrets、project の `gradle.properties`、workflow 本文へ直接書かない。
 
 ### 公開手順
 
 `develop` で CI が成功し、公開する commit が確定したら `vMAJOR.MINOR.PATCH` 形式の tag を push する。
 Release workflow が tag の先頭 `v` を除いた値を Maven version として渡し、署名後に Central Portal へ
-upload・release する。Central は同じ座標・version の上書きを許可しないため、公開済み tag は再利用しない。
+upload・release する。workflow は tag の指す commit が protected branch である `develop` に含まれる
+ことも検証する。Central は同じ座標・version の上書きを許可しないため、公開済み tag は再利用しない。
 
 ```powershell
 git tag v1.0.0
