@@ -9,6 +9,15 @@ plugins {
     alias(libs.plugins.maven.publish)
 }
 
+val versionName = providers.gradleProperty("VERSION_NAME")
+val publishingRequested = gradle.startParameter.taskNames.any { taskName ->
+    taskName.substringAfterLast(':').startsWith("publish", ignoreCase = true)
+}
+
+if (publishingRequested && !versionName.isPresent) {
+    throw GradleException("VERSION_NAME must be provided with -P when publishing.")
+}
+
 android {
     namespace = "com.appvoyager.qrforge"
     compileSdk {
@@ -60,7 +69,7 @@ mavenPublishing {
     coordinates(
         groupId = "io.github.lambdarc",
         artifactId = "qr-forge",
-        version = providers.gradleProperty("VERSION_NAME").orElse("1.0.0-SNAPSHOT").get(),
+        version = versionName.getOrElse("1.0.0-SNAPSHOT"),
     )
 
     publishToMavenCentral()

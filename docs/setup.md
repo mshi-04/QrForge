@@ -195,8 +195,9 @@ secret は repository secrets、project の `gradle.properties`、workflow 本�
 
 `develop` で CI が成功し、公開する commit が確定したら `vMAJOR.MINOR.PATCH` 形式の tag を push する。
 Release workflow が tag の先頭 `v` を除いた値を Maven version として渡し、署名後に Central Portal へ
-upload・release する。workflow は tag の指す commit が protected branch である `develop` に含まれる
-ことも検証する。Central は同じ座標・version の上書きを許可しないため、公開済み tag は再利用しない。
+upload・release する。workflow は `develop` を明示的に fetch し、tag の指す commit が protected branch
+である `develop` に含まれることも検証する。Central は同じ座標・version の上書きを許可しないため、
+公開済み tag は再利用しない。
 
 ```powershell
 git tag v1.0.0
@@ -218,8 +219,9 @@ Get-Content qr-forge/build/publications/maven/pom-default.xml
   "-PsignAllPublications=true"
 ```
 
-`VERSION_NAME` を省略したローカル build は `1.0.0-SNAPSHOT` として扱う。公開前には生成された POM の
-座標、MIT license、SCM、developer 情報と、release AAR の 3 ABI を確認する。
+`VERSION_NAME` を省略したローカル build は `1.0.0-SNAPSHOT` として扱う。ただし `publish` で始まる
+公開タスクでは `VERSION_NAME` を必須とし、未指定なら artifact を送信する前に失敗する。公開前には
+生成された POM の座標、MIT license、SCM、developer 情報と、release AAR の 3 ABI を確認する。
 
 ## repository の整合性確認
 

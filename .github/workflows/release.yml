@@ -25,7 +25,6 @@ jobs:
             echo "Release tags must use the vMAJOR.MINOR.PATCH format." >&2
             exit 1
           fi
-          echo "ORG_GRADLE_PROJECT_VERSION_NAME=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
 
       - name: Checkout
         uses: actions/checkout@v6
@@ -36,6 +35,8 @@ jobs:
       - name: Validate release commit
         shell: bash
         run: |
+          git fetch --no-tags origin \
+            "+refs/heads/develop:refs/remotes/origin/develop"
           if ! git merge-base --is-ancestor "$GITHUB_SHA" "origin/develop"; then
             echo "Release tags must point to a commit contained in develop." >&2
             exit 1
@@ -68,4 +69,7 @@ jobs:
             echo "Maven Central credentials and signing key must be configured." >&2
             exit 1
           fi
-          ./gradlew :qr-forge:publishAndReleaseToMavenCentral --no-daemon --no-configuration-cache
+          ./gradlew :qr-forge:publishAndReleaseToMavenCentral \
+            "-PVERSION_NAME=${GITHUB_REF_NAME#v}" \
+            --no-daemon \
+            --no-configuration-cache
