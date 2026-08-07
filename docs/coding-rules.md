@@ -164,8 +164,8 @@ SDK の利用例と手動確認 UI に留める。JNI の直接呼び出し、`S
 | option model | `QrOptions` |
 | SDK 例外 | `QrGenerationException` |
 | 内部 native binding | `NativeQrGenerator` |
-| Rust core crate | `qrforge-core` |
-| Rust JNI crate | `qrforge-jni` |
+| Rust core crate | `qr-forge-core` |
+| Rust JNI crate | `qr-forge-jni` |
 
 避ける名前: `NativeLib`、`JniHelper`、public API としての `RustBridge`、意味の狭まらない `generate`。
 

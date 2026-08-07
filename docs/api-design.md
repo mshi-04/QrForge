@@ -118,12 +118,12 @@ module_size = ceil(size / (qr_width + margin * 2))
 
 | 定数 | 値 | 定義箇所 |
 |------|----|---------|
-| `DEFAULT_SIZE` | 512 | `QrOptions.kt`, `qrforge-core/src/lib.rs` |
-| `DEFAULT_MARGIN` | 4 | `QrOptions.kt`, `qrforge-core/src/lib.rs` |
-| `MIN_SIZE` | 1 | `QrOptions.kt`, `qrforge-core/src/lib.rs` |
-| `MAX_SIZE` | 4096 | `QrOptions.kt`, `qrforge-core/src/lib.rs` |
-| `MIN_MARGIN` | 0 | `QrOptions.kt`, `qrforge-core/src/lib.rs` |
-| `MAX_MARGIN` | 64 | `QrOptions.kt`, `qrforge-core/src/lib.rs` |
+| `DEFAULT_SIZE` | 512 | `QrOptions.kt`, `rust/qr-forge-core/src/lib.rs` |
+| `DEFAULT_MARGIN` | 4 | `QrOptions.kt`, `rust/qr-forge-core/src/lib.rs` |
+| `MIN_SIZE` | 1 | `QrOptions.kt`, `rust/qr-forge-core/src/lib.rs` |
+| `MAX_SIZE` | 4096 | `QrOptions.kt`, `rust/qr-forge-core/src/lib.rs` |
+| `MIN_MARGIN` | 0 | `QrOptions.kt`, `rust/qr-forge-core/src/lib.rs` |
+| `MAX_MARGIN` | 64 | `QrOptions.kt`, `rust/qr-forge-core/src/lib.rs` |
 
 Rust core の値域エラー文言はこれらの定数から組み立てるため、値を変えればメッセージも追従する。
 Kotlin 側の `require` メッセージも同様に定数を埋め込む。
@@ -141,7 +141,7 @@ Kotlin 側の `require` メッセージも同様に定数を埋め込む。
 ### 互換性の機械的検査
 
 この節の契約は `scripts/check_public_api.py` が検査する。release AAR の bytecode から抽出した
-公開 API を、コミット済みの `qrforge/api/qrforge.api` と比較し、差分があれば落ちる。CI の
+公開 API を、コミット済みの `qr-forge/api/qrforge.api` と比較し、差分があれば落ちる。CI の
 `android` job でも実行する。手順とコマンドは [setup.md](setup.md) の「公開 API の互換性確認」。
 
 `internal` package と、Kotlin が name mangling する `internal` member・`$default` overload は

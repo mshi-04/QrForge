@@ -79,20 +79,20 @@ def markdown_link_errors() -> tuple[list[str], int]:
 
 
 def abi_consistency_errors() -> tuple[list[str], set[str]]:
-    build_file = REPOSITORY_ROOT / "qrforge" / "build.gradle.kts"
-    jni_libs_root = REPOSITORY_ROOT / "qrforge" / "src" / "main" / "jniLibs"
+    build_file = REPOSITORY_ROOT / "qr-forge" / "build.gradle.kts"
+    jni_libs_root = REPOSITORY_ROOT / "qr-forge" / "src" / "main" / "jniLibs"
     errors: list[str] = []
 
     if not build_file.is_file():
-        return ["qrforge/build.gradle.kts: build file was not found"], set()
+        return ["qr-forge/build.gradle.kts: build file was not found"], set()
 
     match = ABI_FILTER_PATTERN.search(build_file.read_text(encoding="utf-8"))
     if match is None:
-        return ["qrforge/build.gradle.kts: abiFilters list was not found"], set()
+        return ["qr-forge/build.gradle.kts: abiFilters list was not found"], set()
 
     configured_abis = set(QUOTED_VALUE_PATTERN.findall(match.group("body")))
     if not jni_libs_root.is_dir():
-        return ["qrforge/src/main/jniLibs: directory was not found"], configured_abis
+        return ["qr-forge/src/main/jniLibs: directory was not found"], configured_abis
 
     packaged_abis = {path.name for path in jni_libs_root.iterdir() if path.is_dir()}
 

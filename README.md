@@ -15,6 +15,14 @@ QrForge は、Android アプリから Kotlin API で利用できる Rust 製 QR 
 
 ## 使い方
 
+アプリの `build.gradle.kts` に Maven Central の依存を追加します。
+
+```kotlin
+dependencies {
+    implementation("io.github.lambdarc:qr-forge:1.0.0")
+}
+```
+
 ### Bitmap を生成する
 
 ```kotlin
@@ -111,4 +119,9 @@ Android アプリやライブラリ利用者が JNI API を直接呼び出すこ
 
 ## 公開状態
 
-現在は、このリポジトリ内の Android library module `:qrforge` として利用できます。
+Maven Central へ公開したバージョンは `io.github.lambdarc:qr-forge:<version>` で利用できます。
+公開前の開発版は、このリポジトリ内の Android library module `:qr-forge` として利用できます。
+
+## ライセンス
+
+[MIT License](LICENSE)

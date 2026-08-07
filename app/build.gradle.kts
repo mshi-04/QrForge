@@ -36,7 +36,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":qrforge"))
+    implementation(project(":qr-forge"))
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.core.ktx)
