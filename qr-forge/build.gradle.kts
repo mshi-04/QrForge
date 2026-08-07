@@ -10,12 +10,12 @@ plugins {
 }
 
 val versionName = providers.gradleProperty("VERSION_NAME")
-val publishingRequested = gradle.startParameter.taskNames.any { taskName ->
-    taskName.substringAfterLast(':').startsWith("publish", ignoreCase = true)
-}
+val releaseVersionFormat = Regex("""\d+\.\d+\.\d+""")
 
-if (publishingRequested && !versionName.isPresent) {
-    throw GradleException("VERSION_NAME must be provided with -P when publishing.")
+versionName.orNull?.let { requestedVersion ->
+    if (!releaseVersionFormat.matches(requestedVersion)) {
+        throw GradleException("VERSION_NAME must use the MAJOR.MINOR.PATCH format.")
+    }
 }
 
 android {
@@ -29,6 +29,7 @@ android {
     defaultConfig {
         minSdk = 28
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles("consumer-rules.pro")
 
         ndk {
             abiFilters += listOf(
@@ -55,6 +56,14 @@ dependencies {
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+}
+
+tasks.matching { task -> task.name.startsWith("publish") }.configureEach {
+    doFirst {
+        if (!versionName.isPresent) {
+            throw GradleException("VERSION_NAME must be provided with -P when publishing.")
+        }
+    }
 }
 
 mavenPublishing {

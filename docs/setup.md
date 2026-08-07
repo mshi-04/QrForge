@@ -195,9 +195,18 @@ secret は repository secrets、project の `gradle.properties`、workflow 本�
 
 `develop` で CI が成功し、公開する commit が確定したら `vMAJOR.MINOR.PATCH` 形式の tag を push する。
 Release workflow が tag の先頭 `v` を除いた値を Maven version として渡し、署名後に Central Portal へ
-upload・release する。workflow は `develop` を明示的に fetch し、tag の指す commit が protected branch
-である `develop` に含まれることも検証する。Central は同じ座標・version の上書きを許可しないため、
-公開済み tag は再利用しない。
+upload・release する。Central は同じ座標・version の上書きを許可しないため、公開済み tag は再利用しない。
+
+workflow は公開前に次を検証する。
+
+- tag が `vMAJOR.MINOR.PATCH` 形式であること
+- tag の指す commit が protected branch である `develop` に含まれること
+- その commit のすべての CI check run が success で終わっていること
+- 公開 API が `qr-forge/api/qrforge.api` と一致すること
+
+`.so` は commit 済みのものをそのまま公開せず、tag の source から 3 ABI を再ビルドして
+`qr-forge/src/main/jniLibs/` を上書きしてから AAR を組み立てる。これにより、commit 済み `.so` が
+古いまま Maven Central へ流れることはない（「`.so` の鮮度」参照）。
 
 ```powershell
 git tag v1.0.0
@@ -219,9 +228,11 @@ Get-Content qr-forge/build/publications/maven/pom-default.xml
   "-PsignAllPublications=true"
 ```
 
-`VERSION_NAME` を省略したローカル build は `1.0.0-SNAPSHOT` として扱う。ただし `publish` で始まる
-公開タスクでは `VERSION_NAME` を必須とし、未指定なら artifact を送信する前に失敗する。公開前には
-生成された POM の座標、MIT license、SCM、developer 情報と、release AAR の 3 ABI を確認する。
+`VERSION_NAME` を省略したローカル build は `1.0.0-SNAPSHOT` として扱う。`publish` で始まる task は
+実行時に `VERSION_NAME` を必須とし、未指定なら artifact を送信する前に失敗する。`VERSION_NAME` を
+指定した場合は task を問わず `MAJOR.MINOR.PATCH` 形式を要求し、空文字列や形式違反は configuration で
+失敗する。公開前には生成された POM の座標、MIT license、SCM、developer 情報と、release AAR の
+3 ABI を確認する。
 
 ## repository の整合性確認
 
@@ -240,7 +251,12 @@ python scripts/check_repo_consistency.py
 
 ## CI ジョブとローカルコマンドの対応
 
-workflow は `.github/workflows/ci.yml`。ローカルで先に潰しておくべき対応は次のとおり。
+workflow は `.github/workflows/ci.yml`。`main`・`develop`・`feature/**` を base にする pull request と、
+`main`・`develop` への push で実行する。stacked PR を CI 対象にするために `feature/**` を含める一方、
+それ以外の base を除外して emulator job の実行を抑える。Java・Gradle の準備は
+`.github/actions/setup-gradle-build` に集約し、release workflow と共有する。
+
+ローカルで先に潰しておくべき対応は次のとおり。
 
 | CI job | ローカルで相当するコマンド |
 |--------|--------------------------|
@@ -248,7 +264,7 @@ workflow は `.github/workflows/ci.yml`。ローカルで先に潰しておく�
 | `rust` | `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets -- -D warnings`、`cargo test --workspace --all-targets`、`cargo test -p qr-forge-core --doc`、`cargo build --manifest-path rust/qr-forge-jni/Cargo.toml`、`cargo ndk`（3 ABI の `.so` 生成確認まで） |
 | `rust-audit` | `cargo deny check` |
 | `kotlin-lint` | `.\gradlew.bat :qr-forge:ktlintCheck :app:ktlintCheck ktlintKotlinScriptCheck` |
-| `android` | `.\gradlew.bat :qr-forge:assembleRelease :qr-forge:generatePomFileForMavenPublication` と `python scripts/check_public_api.py`、`.\gradlew.bat :qr-forge:testDebugUnitTest :qr-forge:assembleDebug :qr-forge:assembleDebugAndroidTest :app:assembleDebug` |
+| `android` | `.\gradlew.bat :qr-forge:assembleRelease` と `python scripts/check_public_api.py`、`.\gradlew.bat :qr-forge:publishToMavenLocal "-PVERSION_NAME=0.0.0"`、`.\gradlew.bat :qr-forge:testDebugUnitTest :qr-forge:assembleDebug :qr-forge:assembleDebugAndroidTest :app:assembleDebug` |
 | `instrumented` | repository にコミット済みの `x86_64` `.so` を使う `.\gradlew.bat :qr-forge:connectedDebugAndroidTest`（CI は API 28 / 34 emulator） |
 
 `kotlin-lint` の指摘は `.\gradlew.bat ktlintFormat` で自動修正できる。code style と適用しない

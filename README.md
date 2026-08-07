@@ -1,5 +1,7 @@
 # QrForge
 
+**日本語** | [English](README.en.md)
+
 QrForge は、Android アプリから Kotlin API で利用できる Rust 製 QR コード生成ライブラリです。
 
 利用者向け API を `QrGenerator` に集約し、QR の生成と PNG エンコードを Rust で処理します。JNI や native library の詳細はライブラリ内部に閉じ込めているため、Android 側では通常の Kotlin ライブラリとして扱えます。
@@ -19,7 +21,7 @@ QrForge は、Android アプリから Kotlin API で利用できる Rust 製 QR 
 
 ```kotlin
 dependencies {
-    implementation("io.github.lambdarc:qr-forge:1.0.0")
+    implementation("io.github.lambdarc:qr-forge:<version>")
 }
 ```
 
