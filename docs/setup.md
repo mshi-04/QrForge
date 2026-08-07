@@ -144,14 +144,20 @@ Rust JNI bridge は `NativeQrGenerator` と `NativeQrGenerator$GenerationFailed`
 公開 AAR へ同梱し、sample app を minify 有効の consumer として実際に縮小したうえで検査する。
 
 ```powershell
-.\gradlew.bat :app:assembleRelease
+.\gradlew.bat :app:assembleRelease :qr-forge:assembleRelease
 python scripts/check_consumer_proguard.py
 ```
 
-検査は release APK の DEX を直接読み、JNI が引く 3 つのシンボルが残っていること、および
-keep 対象でない `NativeQrGenerator$NativeLibraryUnavailable` が rename されていることを確認する。
-後者が残っていれば縮小そのものが効いていないため、検査は失敗する。keep 範囲を広げすぎた場合も
-同じく失敗する。
+検査は release APK の DEX の string・type・proto・method table を解析し、次を確認する。
+
+- `NativeQrGenerator.nativeGenerateQrPng` が descriptor `(Ljava/lang/String;II)[B` で存在する
+- `NativeQrGenerator$GenerationFailed` の `<init>(Ljava/lang/String;)V` が存在する
+- `com.appvoyager.qrforge` 配下で DEX に残る型が、上記 2 つ**だけ**である
+- release AAR の `proguard.txt` が `consumer-rules.pro` と一致する
+
+3 番目は縮小が効いているかと keep 範囲の広さを同時に見る。縮小を切れば他の型が残り、keep を
+広げすぎても他の型が残るため、どちらも失敗する。所有クラスと descriptor まで見るのは、
+文字列の部分一致では `access$nativeGenerateQrPng` のような別シンボルでも通過してしまうため。
 
 `app` の `isMinifyEnabled` は、この検査を成立させるために有効にしている。無効へ戻さない。
 
@@ -284,7 +290,7 @@ workflow は `.github/workflows/ci.yml`。`main`・`develop`・`feature/**` を 
 | `rust` | `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets -- -D warnings`、`cargo test --workspace --all-targets`、`cargo test -p qr-forge-core --doc`、`cargo build --manifest-path rust/qr-forge-jni/Cargo.toml`、`cargo ndk`（3 ABI の `.so` 生成確認まで） |
 | `rust-audit` | `cargo deny check` |
 | `kotlin-lint` | `.\gradlew.bat :qr-forge:ktlintCheck :app:ktlintCheck ktlintKotlinScriptCheck` |
-| `android` | `.\gradlew.bat :qr-forge:assembleRelease` と `python scripts/check_public_api.py`、`.\gradlew.bat :qr-forge:publishToMavenLocal "-PVERSION_NAME=0.0.0"`、`.\gradlew.bat :app:assembleRelease` と `python scripts/check_consumer_proguard.py`、`.\gradlew.bat :qr-forge:testDebugUnitTest :qr-forge:assembleDebug :qr-forge:assembleDebugAndroidTest :app:assembleDebug` |
+| `android` | `.\gradlew.bat :qr-forge:assembleRelease` と `python scripts/check_public_api.py`、`.\gradlew.bat :qr-forge:publishToMavenLocal "-PVERSION_NAME=0.0.0"`、`.\gradlew.bat :app:assembleRelease :qr-forge:assembleRelease` と `python scripts/check_consumer_proguard.py`、`.\gradlew.bat :qr-forge:testDebugUnitTest :qr-forge:assembleDebug :qr-forge:assembleDebugAndroidTest :app:assembleDebug` |
 | `instrumented` | repository にコミット済みの `x86_64` `.so` を使う `.\gradlew.bat :qr-forge:connectedDebugAndroidTest`（CI は API 28 / 34 emulator） |
 
 `kotlin-lint` の指摘は `.\gradlew.bat ktlintFormat` で自動修正できる。code style と適用しない

@@ -157,7 +157,7 @@ jobs:
 
       - name: Check consumer ProGuard rules
         run: |
-          ./gradlew :app:assembleRelease --no-daemon
+          ./gradlew :app:assembleRelease :qr-forge:assembleRelease --no-daemon
           python3 scripts/check_consumer_proguard.py
 
       - name: Run Android checks

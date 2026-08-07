@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Check that the JNI symbols survive R8 in a minified consumer of the :qr-forge library."""
+"""Check that the JNI contract survives R8 in a minified consumer of the :qr-forge library."""
 
 from __future__ import annotations
 
+import struct
 import sys
 import zipfile
 from pathlib import Path
@@ -11,64 +12,182 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 APK_PATH = (
     REPOSITORY_ROOT / "app" / "build" / "outputs" / "apk" / "release" / "app-release-unsigned.apk"
 )
+AAR_PATH = (
+    REPOSITORY_ROOT / "qr-forge" / "build" / "outputs" / "aar" / "qr-forge-release.aar"
+)
+CONSUMER_RULES_PATH = REPOSITORY_ROOT / "qr-forge" / "consumer-rules.pro"
 ASSEMBLE_COMMAND = (
-    r".\gradlew.bat :app:assembleRelease"
+    r".\gradlew.bat :app:assembleRelease :qr-forge:assembleRelease"
     if sys.platform == "win32"
-    else "./gradlew :app:assembleRelease"
+    else "./gradlew :app:assembleRelease :qr-forge:assembleRelease"
 )
 
-INTERNAL_PREFIX = "Lcom/appvoyager/qrforge/internal/NativeQrGenerator"
+LIBRARY_PREFIX = "Lcom/appvoyager/qrforge/"
+SAMPLE_PREFIX = "Lcom/appvoyager/qrforge/sample/"
+NATIVE_OWNER = "Lcom/appvoyager/qrforge/internal/NativeQrGenerator;"
+GENERATION_FAILED = "Lcom/appvoyager/qrforge/internal/NativeQrGenerator$GenerationFailed;"
 
-JNI_SYMBOLS = (
-    f"{INTERNAL_PREFIX};",
-    f"{INTERNAL_PREFIX}$GenerationFailed;",
-    "nativeGenerateQrPng",
+# Rust resolves these three by name: FindClass on the owner and on the exception, GetStaticMethodID
+# on the native entry point, and NewObject on the exception's String constructor.
+REQUIRED_METHODS = (
+    (NATIVE_OWNER, "nativeGenerateQrPng", "(Ljava/lang/String;II)[B"),
+    (GENERATION_FAILED, "<init>", "(Ljava/lang/String;)V"),
 )
 
-# Nothing keeps this sibling, so R8 renames it. Its original name surviving means the APK
-# was never obfuscated, and every JNI symbol below would pass without being protected.
-OBFUSCATION_WITNESS = f"{INTERNAL_PREFIX}$NativeLibraryUnavailable;"
+# R8 must leave nothing else of the library behind. Extra entries mean the build was never
+# obfuscated, or the consumer rules keep more than the JNI contract needs.
+EXPECTED_LIBRARY_TYPES = frozenset({NATIVE_OWNER, GENERATION_FAILED})
 
 
-def dex_bytes() -> bytes:
-    """Concatenate every DEX in the release APK so symbol names can be searched."""
+def uleb128(data: bytes, offset: int) -> tuple[int, int]:
+    value = 0
+    for shift in range(0, 35, 7):
+        byte = data[offset]
+        offset += 1
+        value |= (byte & 0x7F) << shift
+        if byte < 0x80:
+            break
+
+    return value, offset
+
+
+class Dex:
+    """The slice of the DEX tables needed to state what a JNI lookup will find."""
+
+    def __init__(self, data: bytes) -> None:
+        self.data = data
+        self.strings = self._read_strings()
+        self.types = self._read_types()
+        self.protos = self._read_protos()
+
+    def _table(self, header_offset: int) -> tuple[int, int]:
+        size, offset = struct.unpack_from("<II", self.data, header_offset)
+        return size, offset
+
+    def _read_strings(self) -> list[str]:
+        size, offset = self._table(0x38)
+        strings = []
+        for index in range(size):
+            (data_off,) = struct.unpack_from("<I", self.data, offset + index * 4)
+            length, start = uleb128(self.data, data_off)
+            end = self.data.index(b"\x00", start)
+            strings.append(self.data[start:end].decode("utf-8", errors="replace"))
+
+        return strings
+
+    def _read_types(self) -> list[str]:
+        size, offset = self._table(0x40)
+        return [
+            self.strings[struct.unpack_from("<I", self.data, offset + index * 4)[0]]
+            for index in range(size)
+        ]
+
+    def _read_protos(self) -> list[str]:
+        size, offset = self._table(0x48)
+        protos = []
+        for index in range(size):
+            _, return_idx, parameters_off = struct.unpack_from(
+                "<III", self.data, offset + index * 12
+            )
+            parameters = []
+            if parameters_off:
+                (count,) = struct.unpack_from("<I", self.data, parameters_off)
+                parameters = [
+                    self.types[struct.unpack_from("<H", self.data, parameters_off + 4 + i * 2)[0]]
+                    for i in range(count)
+                ]
+            protos.append(f"({''.join(parameters)}){self.types[return_idx]}")
+
+        return protos
+
+    def methods(self) -> set[tuple[str, str, str]]:
+        """Every (owner, name, descriptor) the DEX declares or references."""
+        size, offset = self._table(0x58)
+        found = set()
+        for index in range(size):
+            class_idx, proto_idx, name_idx = struct.unpack_from(
+                "<HHI", self.data, offset + index * 8
+            )
+            found.add((self.types[class_idx], self.strings[name_idx], self.protos[proto_idx]))
+
+        return found
+
+    def library_types(self) -> set[str]:
+        return {
+            descriptor
+            for descriptor in self.types
+            if descriptor.startswith(LIBRARY_PREFIX) and not descriptor.startswith(SAMPLE_PREFIX)
+        }
+
+
+def load_dexes() -> list[Dex]:
     with zipfile.ZipFile(APK_PATH) as apk:
         names = [name for name in apk.namelist() if name.endswith(".dex")]
         if not names:
             raise FileNotFoundError(f"{APK_PATH.name} contains no DEX")
 
-        return b"".join(apk.read(name) for name in names)
+        return [Dex(apk.read(name)) for name in names]
 
 
-def errors(dex: bytes) -> list[str]:
-    if OBFUSCATION_WITNESS.encode("ascii") in dex:
-        return ["app release was not obfuscated; the consumer rules were not exercised"]
+def apk_errors(dexes: list[Dex]) -> list[str]:
+    errors = []
 
-    return [
-        f"R8 removed or renamed {symbol}"
-        for symbol in JNI_SYMBOLS
-        if symbol.encode("ascii") not in dex
-    ]
+    surviving = set().union(*(dex.library_types() for dex in dexes))
+    unexpected = surviving - EXPECTED_LIBRARY_TYPES
+    if unexpected:
+        errors.append(
+            "app release was not obfuscated, or the consumer rules keep more than the JNI "
+            f"contract: {', '.join(sorted(unexpected))}"
+        )
+
+    for descriptor in sorted(EXPECTED_LIBRARY_TYPES - surviving):
+        errors.append(f"R8 removed or renamed {descriptor}")
+
+    declared = set().union(*(dex.methods() for dex in dexes))
+    for method in REQUIRED_METHODS:
+        if method not in declared:
+            owner, name, proto = method
+            errors.append(f"R8 removed or renamed {owner} {name}{proto}")
+
+    return errors
+
+
+def aar_errors() -> list[str]:
+    """The project dependency and the published AAR must carry the same consumer rules."""
+    with zipfile.ZipFile(AAR_PATH) as aar:
+        if "proguard.txt" not in aar.namelist():
+            return [f"{AAR_PATH.name} does not package proguard.txt"]
+
+        packaged = aar.read("proguard.txt").decode("utf-8").split()
+
+    if packaged != CONSUMER_RULES_PATH.read_text(encoding="utf-8").split():
+        return [f"{AAR_PATH.name} packages proguard.txt that differs from consumer-rules.pro"]
+
+    return []
 
 
 def main() -> int:
-    if not APK_PATH.is_file():
-        relative = APK_PATH.relative_to(REPOSITORY_ROOT)
-        print(f"{relative} was not found. Run: {ASSEMBLE_COMMAND}", file=sys.stderr)
-        return 1
+    for path in (APK_PATH, AAR_PATH):
+        if not path.is_file():
+            relative = path.relative_to(REPOSITORY_ROOT)
+            print(f"{relative} was not found. Run: {ASSEMBLE_COMMAND}", file=sys.stderr)
+            return 1
 
-    failures = errors(dex_bytes())
+    failures = apk_errors(load_dexes()) + aar_errors()
     if failures:
         print("Consumer ProGuard check failed:", file=sys.stderr)
         for failure in failures:
             print(f"  {failure}", file=sys.stderr)
         print(
-            "  qr-forge/consumer-rules.pro must keep every symbol the JNI bridge resolves by name.",
+            "  qr-forge/consumer-rules.pro must keep exactly what the JNI bridge resolves by name.",
             file=sys.stderr,
         )
         return 1
 
-    print(f"Consumer ProGuard check passed: {len(JNI_SYMBOLS)} JNI symbol(s) survived R8.")
+    print(
+        f"Consumer ProGuard check passed: {len(REQUIRED_METHODS)} JNI member(s) and "
+        f"{len(EXPECTED_LIBRARY_TYPES)} type(s) survived R8."
+    )
     return 0
 
 
