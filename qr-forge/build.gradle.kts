@@ -9,6 +9,15 @@ plugins {
     alias(libs.plugins.maven.publish)
 }
 
+val versionName = providers.gradleProperty("VERSION_NAME")
+val releaseVersionFormat = Regex("""\d+\.\d+\.\d+""")
+
+versionName.orNull?.let { requestedVersion ->
+    if (!releaseVersionFormat.matches(requestedVersion)) {
+        throw GradleException("VERSION_NAME must use the MAJOR.MINOR.PATCH format.")
+    }
+}
+
 android {
     namespace = "com.appvoyager.qrforge"
     compileSdk {
@@ -20,6 +29,7 @@ android {
     defaultConfig {
         minSdk = 28
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles("consumer-rules.pro")
 
         ndk {
             abiFilters += listOf(
@@ -48,6 +58,14 @@ tasks.withType<Test>().configureEach {
     useJUnitPlatform()
 }
 
+tasks.matching { task -> task.name.startsWith("publish") }.configureEach {
+    doFirst {
+        if (!versionName.isPresent) {
+            throw GradleException("VERSION_NAME must be provided with -P when publishing.")
+        }
+    }
+}
+
 mavenPublishing {
     configure(
         AndroidSingleVariantLibrary(
@@ -60,7 +78,7 @@ mavenPublishing {
     coordinates(
         groupId = "io.github.lambdarc",
         artifactId = "qr-forge",
-        version = providers.gradleProperty("VERSION_NAME").orElse("1.0.0-SNAPSHOT").get(),
+        version = versionName.getOrElse("1.0.0-SNAPSHOT"),
     )
 
     publishToMavenCentral()

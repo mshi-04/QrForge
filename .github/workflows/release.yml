@@ -11,6 +11,7 @@ concurrency:
 
 permissions:
   contents: read
+  checks: read
 
 jobs:
   publish:
@@ -25,7 +26,6 @@ jobs:
             echo "Release tags must use the vMAJOR.MINOR.PATCH format." >&2
             exit 1
           fi
-          echo "ORG_GRADLE_PROJECT_VERSION_NAME=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
 
       - name: Checkout
         uses: actions/checkout@v6
@@ -41,17 +41,52 @@ jobs:
             exit 1
           fi
 
-      - name: Setup Java
-        uses: actions/setup-java@v5
+      - name: Require successful CI on release commit
+        shell: bash
+        run: |
+          commit="$(git rev-parse "$GITHUB_SHA^{commit}")"
+          conclusions="$(gh api --paginate "repos/$GITHUB_REPOSITORY/commits/$commit/check-runs" \
+            --jq ".check_runs[] | select(.name != \"$GITHUB_JOB_NAME\") | .conclusion")"
+          if [[ -z "$conclusions" ]]; then
+            echo "No CI check run was found for the release commit." >&2
+            exit 1
+          fi
+          if grep -qvx success <<<"$conclusions"; then
+            echo "Every CI check on the release commit must have succeeded." >&2
+            exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_JOB_NAME: Publish to Maven Central
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          distribution: temurin
-          java-version: "17"
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
+      - name: Install Android NDK
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;27.2.12479018"
 
-      - name: Make Gradle wrapper executable
-        run: chmod +x ./gradlew
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --locked
+
+      - name: Rebuild native libraries from release source
+        shell: bash
+        run: |
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/27.2.12479018"
+          export ANDROID_NDK_ROOT="$ANDROID_NDK_HOME"
+          cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o qr-forge/src/main/jniLibs build --release --manifest-path rust/qr-forge-jni/Cargo.toml
+          test -f qr-forge/src/main/jniLibs/arm64-v8a/libqrforge.so
+          test -f qr-forge/src/main/jniLibs/armeabi-v7a/libqrforge.so
+          test -f qr-forge/src/main/jniLibs/x86_64/libqrforge.so
+
+      - name: Setup Gradle build
+        uses: ./.github/actions/setup-gradle-build
+
+      - name: Check public API compatibility
+        run: |
+          ./gradlew :qr-forge:assembleRelease --no-daemon
+          python3 scripts/check_public_api.py
 
       - name: Publish and release
         env:
@@ -68,4 +103,7 @@ jobs:
             echo "Maven Central credentials and signing key must be configured." >&2
             exit 1
           fi
-          ./gradlew :qr-forge:publishAndReleaseToMavenCentral --no-daemon --no-configuration-cache
+          ./gradlew :qr-forge:publishAndReleaseToMavenCentral \
+            "-PVERSION_NAME=${GITHUB_REF_NAME#v}" \
+            --no-daemon \
+            --no-configuration-cache

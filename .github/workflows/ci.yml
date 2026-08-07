@@ -6,6 +6,10 @@ on:
       - main
       - develop
   pull_request:
+    branches:
+      - main
+      - develop
+      - "feature/**"
     types:
       - opened
       - synchronize
@@ -116,19 +120,8 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          cache-read-only: true
-
-      - name: Make Gradle wrapper executable
-        run: chmod +x ./gradlew
+      - name: Setup Gradle build
+        uses: ./.github/actions/setup-gradle-build
 
       - name: Check Kotlin format and style
         run: ./gradlew :qr-forge:ktlintCheck :app:ktlintCheck ktlintKotlinScriptCheck --no-daemon
@@ -142,24 +135,30 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
+      - name: Setup Gradle build
+        uses: ./.github/actions/setup-gradle-build
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/develop' }}
 
-      - name: Make Gradle wrapper executable
-        run: chmod +x ./gradlew
-
       - name: Check public API compatibility
         run: |
-          ./gradlew :qr-forge:assembleRelease :qr-forge:generatePomFileForMavenPublication --no-daemon
+          ./gradlew :qr-forge:assembleRelease --no-daemon
           python3 scripts/check_public_api.py
+
+      - name: Verify Maven publication
+        env:
+          PUBLICATION_SMOKE_VERSION: "0.0.0"
+        shell: bash
+        run: |
+          ./gradlew :qr-forge:publishToMavenLocal "-PVERSION_NAME=$PUBLICATION_SMOKE_VERSION" --no-daemon --no-configuration-cache
+          artifacts="$HOME/.m2/repository/io/github/lambdarc/qr-forge/$PUBLICATION_SMOKE_VERSION"
+          test -f "$artifacts/qr-forge-$PUBLICATION_SMOKE_VERSION.pom"
+          test -f "$artifacts/qr-forge-$PUBLICATION_SMOKE_VERSION.aar"
+
+      - name: Check consumer ProGuard rules
+        run: |
+          ./gradlew :app:assembleRelease :qr-forge:assembleRelease --no-daemon
+          python3 scripts/check_consumer_proguard.py
 
       - name: Run Android checks
         run: ./gradlew :qr-forge:testDebugUnitTest :qr-forge:assembleDebug :qr-forge:assembleDebugAndroidTest :app:assembleDebug --no-daemon
@@ -183,22 +182,11 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "17"
-
       - name: Check committed x86_64 native library
         run: test -f qr-forge/src/main/jniLibs/x86_64/libqrforge.so
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          cache-read-only: true
-
-      - name: Make Gradle wrapper executable
-        run: chmod +x ./gradlew
+      - name: Setup Gradle build
+        uses: ./.github/actions/setup-gradle-build
 
       - name: Enable KVM
         run: |

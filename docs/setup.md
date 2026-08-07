@@ -136,6 +136,33 @@ snapshot の更新は互換性を壊してよい理由にはならない。
 
 `connectedDebugAndroidTest` は実機またはエミュレーターが必須。接続先が無い場合は黙って飛ばさず、「未実行」と理由を報告する。
 
+## 利用側 R8 との互換性確認
+
+Rust JNI bridge は `NativeQrGenerator` と `NativeQrGenerator$GenerationFailed` を literal な名前で
+解決する。利用側アプリが R8 を有効にするとこれらは rename され、`throw_new` の失敗から
+`fatal_error` に落ちて process abort する。これを防ぐため `qr-forge/consumer-rules.pro` を
+公開 AAR へ同梱し、sample app を minify 有効の consumer として実際に縮小したうえで検査する。
+
+```powershell
+.\gradlew.bat :app:assembleRelease :qr-forge:assembleRelease
+python scripts/check_consumer_proguard.py
+```
+
+検査は release APK の DEX から `class_defs` と `class_data_item` を解析し、次を確認する。
+`type_ids` と `method_ids` には参照も含まれ、R8 が定義を消しても他所からの参照だけで残るため、
+判定には定義側だけを使う。
+
+- `NativeQrGenerator.nativeGenerateQrPng` が descriptor `(Ljava/lang/String;II)[B` で存在する
+- `NativeQrGenerator$GenerationFailed` の `<init>(Ljava/lang/String;)V` が存在する
+- `com.appvoyager.qrforge` 配下で DEX に残る型が、上記 2 つ**だけ**である
+- release AAR の `proguard.txt` が `consumer-rules.pro` と一致する
+
+3 番目は縮小が効いているかと keep 範囲の広さを同時に見る。縮小を切れば他の型が残り、keep を
+広げすぎても他の型が残るため、どちらも失敗する。所有クラスと descriptor まで見るのは、
+文字列の部分一致では `access$nativeGenerateQrPng` のような別シンボルでも通過してしまうため。
+
+`app` の `isMinifyEnabled` は、この検査を成立させるために有効にしている。無効へ戻さない。
+
 ## instrumented test のクラス絞り込み
 
 `--tests` は `connectedDebugAndroidTest` では効かない。instrumentation runner の引数を使い、PowerShell では引数全体を quote する。
@@ -156,6 +183,7 @@ snapshot の更新は互換性を壊してよい理由にはならない。
 | Kotlin wrapper（`qr-forge/`） | `.\gradlew.bat :qr-forge:assembleDebug`、`.\gradlew.bat :qr-forge:testDebugUnitTest` |
 | Kotlin を変更した（レイヤ問わず） | `.\gradlew.bat :qr-forge:ktlintCheck :app:ktlintCheck ktlintKotlinScriptCheck` |
 | 公開 API（`QrGenerator`・`QrOptions`・`QrGenerationException`） | 上記に加えて「公開 API の互換性確認」の 2 コマンド |
+| JNI が名前で解決する class・method（`NativeQrGenerator`、`GenerationFailed`、`nativeGenerateQrPng`） | 上記に加えて「利用側 R8 との互換性確認」の 2 コマンド。`consumer-rules.pro` の keep 対象も合わせて更新する |
 | Rust の依存を追加・更新した | `cargo deny check` |
 | Instrumented test | `.\gradlew.bat :qr-forge:assembleDebugAndroidTest`、可能なら `.\gradlew.bat :qr-forge:connectedDebugAndroidTest` |
 | Sample app（`app/`） | `.\gradlew.bat :app:assembleDebug` |
@@ -195,8 +223,18 @@ secret は repository secrets、project の `gradle.properties`、workflow 本�
 
 `develop` で CI が成功し、公開する commit が確定したら `vMAJOR.MINOR.PATCH` 形式の tag を push する。
 Release workflow が tag の先頭 `v` を除いた値を Maven version として渡し、署名後に Central Portal へ
-upload・release する。workflow は tag の指す commit が protected branch である `develop` に含まれる
-ことも検証する。Central は同じ座標・version の上書きを許可しないため、公開済み tag は再利用しない。
+upload・release する。Central は同じ座標・version の上書きを許可しないため、公開済み tag は再利用しない。
+
+workflow は公開前に次を検証する。
+
+- tag が `vMAJOR.MINOR.PATCH` 形式であること
+- tag の指す commit が protected branch である `develop` に含まれること
+- その commit のすべての CI check run が success で終わっていること
+- 公開 API が `qr-forge/api/qrforge.api` と一致すること
+
+`.so` は commit 済みのものをそのまま公開せず、tag の source から 3 ABI を再ビルドして
+`qr-forge/src/main/jniLibs/` を上書きしてから AAR を組み立てる。これにより、commit 済み `.so` が
+古いまま Maven Central へ流れることはない（「`.so` の鮮度」参照）。
 
 ```powershell
 git tag v1.0.0
@@ -218,8 +256,11 @@ Get-Content qr-forge/build/publications/maven/pom-default.xml
   "-PsignAllPublications=true"
 ```
 
-`VERSION_NAME` を省略したローカル build は `1.0.0-SNAPSHOT` として扱う。公開前には生成された POM の
-座標、MIT license、SCM、developer 情報と、release AAR の 3 ABI を確認する。
+`VERSION_NAME` を省略したローカル build は `1.0.0-SNAPSHOT` として扱う。`publish` で始まる task は
+実行時に `VERSION_NAME` を必須とし、未指定なら artifact を送信する前に失敗する。`VERSION_NAME` を
+指定した場合は task を問わず `MAJOR.MINOR.PATCH` 形式を要求し、空文字列や形式違反は configuration で
+失敗する。公開前には生成された POM の座標、MIT license、SCM、developer 情報と、release AAR の
+3 ABI を確認する。
 
 ## repository の整合性確認
 
@@ -238,7 +279,12 @@ python scripts/check_repo_consistency.py
 
 ## CI ジョブとローカルコマンドの対応
 
-workflow は `.github/workflows/ci.yml`。ローカルで先に潰しておくべき対応は次のとおり。
+workflow は `.github/workflows/ci.yml`。`main`・`develop`・`feature/**` を base にする pull request と、
+`main`・`develop` への push で実行する。stacked PR を CI 対象にするために `feature/**` を含める一方、
+それ以外の base を除外して emulator job の実行を抑える。Java・Gradle の準備は
+`.github/actions/setup-gradle-build` に集約し、release workflow と共有する。
+
+ローカルで先に潰しておくべき対応は次のとおり。
 
 | CI job | ローカルで相当するコマンド |
 |--------|--------------------------|
@@ -246,7 +292,7 @@ workflow は `.github/workflows/ci.yml`。ローカルで先に潰しておく�
 | `rust` | `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets -- -D warnings`、`cargo test --workspace --all-targets`、`cargo test -p qr-forge-core --doc`、`cargo build --manifest-path rust/qr-forge-jni/Cargo.toml`、`cargo ndk`（3 ABI の `.so` 生成確認まで） |
 | `rust-audit` | `cargo deny check` |
 | `kotlin-lint` | `.\gradlew.bat :qr-forge:ktlintCheck :app:ktlintCheck ktlintKotlinScriptCheck` |
-| `android` | `.\gradlew.bat :qr-forge:assembleRelease :qr-forge:generatePomFileForMavenPublication` と `python scripts/check_public_api.py`、`.\gradlew.bat :qr-forge:testDebugUnitTest :qr-forge:assembleDebug :qr-forge:assembleDebugAndroidTest :app:assembleDebug` |
+| `android` | `.\gradlew.bat :qr-forge:assembleRelease` と `python scripts/check_public_api.py`、`.\gradlew.bat :qr-forge:publishToMavenLocal "-PVERSION_NAME=0.0.0"`、`.\gradlew.bat :app:assembleRelease :qr-forge:assembleRelease` と `python scripts/check_consumer_proguard.py`、`.\gradlew.bat :qr-forge:testDebugUnitTest :qr-forge:assembleDebug :qr-forge:assembleDebugAndroidTest :app:assembleDebug` |
 | `instrumented` | repository にコミット済みの `x86_64` `.so` を使う `.\gradlew.bat :qr-forge:connectedDebugAndroidTest`（CI は API 28 / 34 emulator） |
 
 `kotlin-lint` の指摘は `.\gradlew.bat ktlintFormat` で自動修正できる。code style と適用しない

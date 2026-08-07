@@ -1,0 +1,26 @@
+name: Setup Gradle build
+description: Install the Java toolchain, configure Gradle, and make the wrapper executable.
+
+inputs:
+  cache-read-only:
+    description: Restore the Gradle cache without writing to it.
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Java
+      uses: actions/setup-java@v5
+      with:
+        distribution: temurin
+        java-version: "17"
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v6
+      with:
+        cache-read-only: ${{ inputs.cache-read-only }}
+
+    - name: Make Gradle wrapper executable
+      shell: bash
+      run: chmod +x ./gradlew

@@ -27,8 +27,6 @@ __pycache__/
 
 # Native build outputs
 *.so
-!qr-forge/src/main/jniLibs/
-!qr-forge/src/main/jniLibs/**/
 !qr-forge/src/main/jniLibs/**/*.so
 *.dylib
 *.dll
