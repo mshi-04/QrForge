@@ -136,6 +136,25 @@ snapshot の更新は互換性を壊してよい理由にはならない。
 
 `connectedDebugAndroidTest` は実機またはエミュレーターが必須。接続先が無い場合は黙って飛ばさず、「未実行」と理由を報告する。
 
+## 利用側 R8 との互換性確認
+
+Rust JNI bridge は `NativeQrGenerator` と `NativeQrGenerator$GenerationFailed` を literal な名前で
+解決する。利用側アプリが R8 を有効にするとこれらは rename され、`throw_new` の失敗から
+`fatal_error` に落ちて process abort する。これを防ぐため `qr-forge/consumer-rules.pro` を
+公開 AAR へ同梱し、sample app を minify 有効の consumer として実際に縮小したうえで検査する。
+
+```powershell
+.\gradlew.bat :app:assembleRelease
+python scripts/check_consumer_proguard.py
+```
+
+検査は release APK の DEX を直接読み、JNI が引く 3 つのシンボルが残っていること、および
+keep 対象でない `NativeQrGenerator$NativeLibraryUnavailable` が rename されていることを確認する。
+後者が残っていれば縮小そのものが効いていないため、検査は失敗する。keep 範囲を広げすぎた場合も
+同じく失敗する。
+
+`app` の `isMinifyEnabled` は、この検査を成立させるために有効にしている。無効へ戻さない。
+
 ## instrumented test のクラス絞り込み
 
 `--tests` は `connectedDebugAndroidTest` では効かない。instrumentation runner の引数を使い、PowerShell では引数全体を quote する。
@@ -156,6 +175,7 @@ snapshot の更新は互換性を壊してよい理由にはならない。
 | Kotlin wrapper（`qr-forge/`） | `.\gradlew.bat :qr-forge:assembleDebug`、`.\gradlew.bat :qr-forge:testDebugUnitTest` |
 | Kotlin を変更した（レイヤ問わず） | `.\gradlew.bat :qr-forge:ktlintCheck :app:ktlintCheck ktlintKotlinScriptCheck` |
 | 公開 API（`QrGenerator`・`QrOptions`・`QrGenerationException`） | 上記に加えて「公開 API の互換性確認」の 2 コマンド |
+| JNI が名前で解決する class・method（`NativeQrGenerator`、`GenerationFailed`、`nativeGenerateQrPng`） | 上記に加えて「利用側 R8 との互換性確認」の 2 コマンド。`consumer-rules.pro` の keep 対象も合わせて更新する |
 | Rust の依存を追加・更新した | `cargo deny check` |
 | Instrumented test | `.\gradlew.bat :qr-forge:assembleDebugAndroidTest`、可能なら `.\gradlew.bat :qr-forge:connectedDebugAndroidTest` |
 | Sample app（`app/`） | `.\gradlew.bat :app:assembleDebug` |
@@ -264,7 +284,7 @@ workflow は `.github/workflows/ci.yml`。`main`・`develop`・`feature/**` を 
 | `rust` | `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets -- -D warnings`、`cargo test --workspace --all-targets`、`cargo test -p qr-forge-core --doc`、`cargo build --manifest-path rust/qr-forge-jni/Cargo.toml`、`cargo ndk`（3 ABI の `.so` 生成確認まで） |
 | `rust-audit` | `cargo deny check` |
 | `kotlin-lint` | `.\gradlew.bat :qr-forge:ktlintCheck :app:ktlintCheck ktlintKotlinScriptCheck` |
-| `android` | `.\gradlew.bat :qr-forge:assembleRelease` と `python scripts/check_public_api.py`、`.\gradlew.bat :qr-forge:publishToMavenLocal "-PVERSION_NAME=0.0.0"`、`.\gradlew.bat :qr-forge:testDebugUnitTest :qr-forge:assembleDebug :qr-forge:assembleDebugAndroidTest :app:assembleDebug` |
+| `android` | `.\gradlew.bat :qr-forge:assembleRelease` と `python scripts/check_public_api.py`、`.\gradlew.bat :qr-forge:publishToMavenLocal "-PVERSION_NAME=0.0.0"`、`.\gradlew.bat :app:assembleRelease` と `python scripts/check_consumer_proguard.py`、`.\gradlew.bat :qr-forge:testDebugUnitTest :qr-forge:assembleDebug :qr-forge:assembleDebugAndroidTest :app:assembleDebug` |
 | `instrumented` | repository にコミット済みの `x86_64` `.so` を使う `.\gradlew.bat :qr-forge:connectedDebugAndroidTest`（CI は API 28 / 34 emulator） |
 
 `kotlin-lint` の指摘は `.\gradlew.bat ktlintFormat` で自動修正できる。code style と適用しない

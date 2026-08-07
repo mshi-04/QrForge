@@ -155,6 +155,11 @@ jobs:
           test -f "$artifacts/qr-forge-$PUBLICATION_SMOKE_VERSION.pom"
           test -f "$artifacts/qr-forge-$PUBLICATION_SMOKE_VERSION.aar"
 
+      - name: Check consumer ProGuard rules
+        run: |
+          ./gradlew :app:assembleRelease --no-daemon
+          python3 scripts/check_consumer_proguard.py
+
       - name: Run Android checks
         run: ./gradlew :qr-forge:testDebugUnitTest :qr-forge:assembleDebug :qr-forge:assembleDebugAndroidTest :app:assembleDebug --no-daemon
 
