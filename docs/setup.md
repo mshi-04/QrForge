@@ -148,7 +148,9 @@ Rust JNI bridge は `NativeQrGenerator` と `NativeQrGenerator$GenerationFailed`
 python scripts/check_consumer_proguard.py
 ```
 
-検査は release APK の DEX の string・type・proto・method table を解析し、次を確認する。
+検査は release APK の DEX から `class_defs` と `class_data_item` を解析し、次を確認する。
+`type_ids` と `method_ids` には参照も含まれ、R8 が定義を消しても他所からの参照だけで残るため、
+判定には定義側だけを使う。
 
 - `NativeQrGenerator.nativeGenerateQrPng` が descriptor `(Ljava/lang/String;II)[B` で存在する
 - `NativeQrGenerator$GenerationFailed` の `<init>(Ljava/lang/String;)V` が存在する

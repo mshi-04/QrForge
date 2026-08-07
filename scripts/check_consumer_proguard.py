@@ -52,13 +52,19 @@ def uleb128(data: bytes, offset: int) -> tuple[int, int]:
 
 
 class Dex:
-    """The slice of the DEX tables needed to state what a JNI lookup will find."""
+    """The slice of the DEX tables needed to state what a JNI lookup will find.
+
+    Only definitions count. `type_ids` and `method_ids` also hold references, so a class R8
+    deleted can still appear there and would make a reference-based check pass while
+    `FindClass` fails on the device.
+    """
 
     def __init__(self, data: bytes) -> None:
         self.data = data
         self.strings = self._read_strings()
         self.types = self._read_types()
         self.protos = self._read_protos()
+        self.method_ids = self._read_method_ids()
 
     def _table(self, header_offset: int) -> tuple[int, int]:
         size, offset = struct.unpack_from("<II", self.data, header_offset)
@@ -69,7 +75,7 @@ class Dex:
         strings = []
         for index in range(size):
             (data_off,) = struct.unpack_from("<I", self.data, offset + index * 4)
-            length, start = uleb128(self.data, data_off)
+            _, start = uleb128(self.data, data_off)
             end = self.data.index(b"\x00", start)
             strings.append(self.data[start:end].decode("utf-8", errors="replace"))
 
@@ -100,24 +106,57 @@ class Dex:
 
         return protos
 
-    def methods(self) -> set[tuple[str, str, str]]:
-        """Every (owner, name, descriptor) the DEX declares or references."""
+    def _read_method_ids(self) -> list[tuple[str, str, str]]:
         size, offset = self._table(0x58)
-        found = set()
-        for index in range(size):
-            class_idx, proto_idx, name_idx = struct.unpack_from(
-                "<HHI", self.data, offset + index * 8
+        return [
+            (self.types[class_idx], self.strings[name_idx], self.protos[proto_idx])
+            for class_idx, proto_idx, name_idx in (
+                struct.unpack_from("<HHI", self.data, offset + index * 8) for index in range(size)
             )
-            found.add((self.types[class_idx], self.strings[name_idx], self.protos[proto_idx]))
+        ]
 
-        return found
+    def _encoded_methods(self, offset: int, count: int) -> tuple[list[int], int]:
+        """Read one delta-encoded encoded_method list, returning absolute method indexes."""
+        indexes = []
+        method_idx = 0
+        for position in range(count):
+            diff, offset = uleb128(self.data, offset)
+            _, offset = uleb128(self.data, offset)
+            _, offset = uleb128(self.data, offset)
+            method_idx = diff if position == 0 else method_idx + diff
+            indexes.append(method_idx)
 
-    def library_types(self) -> set[str]:
-        return {
-            descriptor
-            for descriptor in self.types
-            if descriptor.startswith(LIBRARY_PREFIX) and not descriptor.startswith(SAMPLE_PREFIX)
-        }
+        return indexes, offset
+
+    def definitions(self) -> tuple[set[str], set[tuple[str, str, str]]]:
+        """The classes this DEX defines, and the methods defined inside them."""
+        size, offset = self._table(0x60)
+        types = set()
+        methods = set()
+        for index in range(size):
+            class_idx, class_data_off = struct.unpack_from(
+                "<I20xI", self.data, offset + index * 32
+            )
+            types.add(self.types[class_idx])
+            if not class_data_off:
+                continue
+
+            cursor = class_data_off
+            counts = []
+            for _ in range(4):
+                count, cursor = uleb128(self.data, cursor)
+                counts.append(count)
+
+            for field_count in counts[:2]:
+                for _ in range(field_count):
+                    _, cursor = uleb128(self.data, cursor)
+                    _, cursor = uleb128(self.data, cursor)
+
+            for method_count in counts[2:]:
+                indexes, cursor = self._encoded_methods(cursor, method_count)
+                methods.update(self.method_ids[method_idx] for method_idx in indexes)
+
+        return types, methods
 
 
 def load_dexes() -> list[Dex]:
@@ -132,7 +171,16 @@ def load_dexes() -> list[Dex]:
 def apk_errors(dexes: list[Dex]) -> list[str]:
     errors = []
 
-    surviving = set().union(*(dex.library_types() for dex in dexes))
+    defined = [dex.definitions() for dex in dexes]
+    defined_types = set().union(*(types for types, _ in defined))
+    defined_methods = set().union(*(methods for _, methods in defined))
+
+    surviving = {
+        descriptor
+        for descriptor in defined_types
+        if descriptor.startswith(LIBRARY_PREFIX) and not descriptor.startswith(SAMPLE_PREFIX)
+    }
+
     unexpected = surviving - EXPECTED_LIBRARY_TYPES
     if unexpected:
         errors.append(
@@ -141,12 +189,10 @@ def apk_errors(dexes: list[Dex]) -> list[str]:
         )
 
     for descriptor in sorted(EXPECTED_LIBRARY_TYPES - surviving):
-        errors.append(f"R8 removed or renamed {descriptor}")
+        errors.append(f"R8 removed or renamed the class {descriptor}")
 
-    declared = set().union(*(dex.methods() for dex in dexes))
-    for method in REQUIRED_METHODS:
-        if method not in declared:
-            owner, name, proto = method
+    for owner, name, proto in REQUIRED_METHODS:
+        if (owner, name, proto) not in defined_methods:
             errors.append(f"R8 removed or renamed {owner} {name}{proto}")
 
     return errors
