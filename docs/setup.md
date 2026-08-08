@@ -191,7 +191,7 @@ python scripts/check_consumer_proguard.py
 | Kotlin を変更した（レイヤ問わず） | `.\gradlew.bat :qr-forge:ktlintCheck :app:ktlintCheck ktlintKotlinScriptCheck` |
 | 公開 API（`QrGenerator`・`QrOptions`・`QrGenerationException`） | 上記に加えて「公開 API の互換性確認」の 2 コマンド |
 | JNI が名前で解決する class・method（`NativeQrGenerator`、`GenerationFailed`、`nativeGenerateQrPng`） | 上記に加えて「利用側 R8 との互換性確認」の 2 コマンド。`consumer-rules.pro` の keep 対象も合わせて更新する |
-| Rust の依存を追加・更新した | `cargo deny check` |
+| Rust の依存を追加・更新した | `cargo deny check`、`python scripts/generate_third_party_notices.py` |
 | Instrumented test | `.\gradlew.bat :qr-forge:assembleDebugAndroidTest`、可能なら `.\gradlew.bat :qr-forge:connectedDebugAndroidTest` |
 | Sample app（`app/`） | `.\gradlew.bat :app:assembleDebug` |
 | ABI 追加・削除 | `.so` 再ビルド、`abiFilters`、README・本文書・CI をまとめて更新 |

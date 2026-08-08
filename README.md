@@ -124,6 +124,13 @@ Android アプリやライブラリ利用者が JNI API を直接呼び出すこ
 Maven Central へ公開したバージョンは `io.github.lambdarc:qr-forge:<version>` で利用できます。
 公開前の開発版は、このリポジトリ内の Android library module `:qr-forge` として利用できます。
 
+## セキュリティ
+
+脆弱性は公開 issue ではなく [SECURITY.md](SECURITY.md) の手順で報告してください。
+
 ## ライセンス
 
 [MIT License](LICENSE)
+
+`libqrforge.so` へ静的リンクしている Rust crate の著作権表示と license 全文は
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) にまとめています。
