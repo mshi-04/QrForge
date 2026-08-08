@@ -370,8 +370,9 @@ Maven Central への反映には時間差があり得る。Release workflow の 
 version で、両者は `v` の有無だけが違う。まだ tag を作っていない場合は「公開手順」の注釈付き tag 作成を
 先に済ませる。存在しない tag を指定すると `git switch` で止まる。
 
-手動公開は workflow の検証を迂回する経路なので、workflow が落とす条件をすべて手で確認する。1 つでも
-満たさないなら公開しない。
+手動公開は workflow の検証を迂回する経路なので、workflow が落とす条件をすべて手で確認する。PowerShell は
+外部 command の非ゼロ終了で自動的に停止しないため、`$LASTEXITCODE` を見て `throw` する。目視確認に頼ると
+見落としがそのまま公開になる。
 
 ```powershell
 $version = "1.0.1" # Central Portal に deployment が無い patch version
@@ -379,25 +380,38 @@ $sourceTag = "v$version"
 if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "version must be MAJOR.MINOR.PATCH" }
 
 git fetch --tags origin
+if ($LASTEXITCODE -ne 0) { throw "tag の fetch に失敗した" }
 git fetch --no-tags origin main
+if ($LASTEXITCODE -ne 0) { throw "main の fetch に失敗した" }
 git switch --detach $sourceTag
-git status --short
-git rev-parse HEAD
-git rev-parse "$sourceTag^{commit}"
-git rev-parse FETCH_HEAD
-gh api "repos/lambdarc/qr-forge/commits/$(git rev-parse HEAD)/check-runs" --paginate `
-  --jq '.check_runs[] | "\(.conclusion) \(.name)"'
+if ($LASTEXITCODE -ne 0) { throw "$sourceTag を checkout できない" }
+
+$dirty = @(git status --porcelain)
+if ($LASTEXITCODE -ne 0 -or $dirty.Count -ne 0) { throw "作業ツリーが clean でない" }
+
+$headCommit = git rev-parse 'HEAD^{commit}'
+if ($LASTEXITCODE -ne 0) { throw "HEAD を解決できない" }
+$tagCommit = git rev-parse "$sourceTag^{commit}"
+if ($LASTEXITCODE -ne 0) { throw "$sourceTag を解決できない" }
+$mainCommit = git rev-parse 'FETCH_HEAD^{commit}'
+if ($LASTEXITCODE -ne 0) { throw "FETCH_HEAD を解決できない" }
+if ($headCommit -ne $tagCommit -or $tagCommit -ne $mainCommit) {
+    throw "release commit が $sourceTag と origin/main の最新に一致しない"
+}
+
+$conclusions = @(gh api "repos/lambdarc/qr-forge/commits/$headCommit/check-runs" --paginate `
+    --jq '.check_runs[].conclusion')
+if ($LASTEXITCODE -ne 0) { throw "check run を取得できない" }
+if ($conclusions.Count -eq 0) { throw "release commit に check run が無い" }
+$unfinished = @($conclusions | Where-Object { $_ -ne 'success' })
+if ($unfinished.Count -ne 0) { throw "success でない check run がある: $($unfinished -join ', ')" }
 ```
 
-次をすべて満たすことを確認する。workflow の「Validate release tag」「Validate release commit」
-「Require successful CI on release commit」に対応する。
+この block は workflow の「Validate release tag」「Validate release commit」「Require successful CI on
+release commit」に対応する。最後まで例外なく到達した場合だけ次へ進む。`throw` で止まったら公開しない。
 
-| 確認 | 満たすべき状態 |
-|------|----------------|
-| tag の形式 | `$version` が `MAJOR.MINOR.PATCH`。形式違反は上の `throw` で止まる |
-| 作業ツリー | `git status --short` が何も出力しない |
-| release commit | `HEAD`、`$sourceTag` の commit、`FETCH_HEAD`（remote の `main` 最新）の 3 つが一致する |
-| CI | 列挙された check run の conclusion がすべて `success` |
+`release commit が一致しない` で止まる場合、tag は `main` の最新を指していない。古い source を公開する
+ことになるため、`main` へのマージからやり直す。
 
 `FETCH_HEAD` と一致しない tag は `main` の最新を指していない。古い source を公開することになるため、
 `main` へのマージからやり直す。`success` 以外の check run が 1 つでもあれば公開しない。
