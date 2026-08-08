@@ -219,6 +219,38 @@ artifact ID、Gradle project/module、Rust package などの機械識別子に�
 
 secret は repository secrets、project の `gradle.properties`、workflow 本文へ直接書かない。
 
+初回設定は tag を作る前にすべて完了させる。特に Central Portal の namespace、active な tag ruleset、
+required reviewer 付きの `release` environment、environment secrets は workflow の source だけでは
+有効性を確認できないため、GitHub と Central Portal の設定画面で確認する。
+
+### リリース前チェック
+
+公開 version は [api-design.md](api-design.md) のバージョニング方針に従って決める。release commit は
+最新の `origin/develop` と一致し、作業ツリーが clean で、その commit の CI がすべて成功していること。
+
+```powershell
+$version = "1.0.0"
+git switch develop
+git pull --ff-only origin develop
+git status --short
+git rev-parse HEAD
+git rev-parse origin/develop
+```
+
+`git status --short` は何も出力せず、2 つの commit ID は一致しなければならない。publication と POM は
+tag を作る前に、実際に公開する version を明示して確認する。
+
+```powershell
+.\gradlew.bat :qr-forge:assembleRelease :qr-forge:generatePomFileForMavenPublication `
+  "-PVERSION_NAME=$version" `
+  --no-configuration-cache
+Get-Content qr-forge/build/publications/maven/pom-default.xml
+python scripts/check_public_api.py
+```
+
+POM の座標、version、MIT license、SCM、developer 情報を確認する。release AAR の public API は
+`qr-forge/api/qrforge.api` と一致しなければならない。
+
 ### 公開手順
 
 `develop` で CI が成功し、公開する commit が確定したら `vMAJOR.MINOR.PATCH` 形式の tag を push する。
@@ -236,17 +268,42 @@ workflow は公開前に次を検証する。
 `qr-forge/src/main/jniLibs/` を上書きしてから AAR を組み立てる。これにより、commit 済み `.so` が
 古いまま Maven Central へ流れることはない（「`.so` の鮮度」参照）。
 
-```powershell
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-公開前に publication と POM をローカルで確認する。
+release tag は注釈付きで作成し、作成後に別の commit へ移動しない。
 
 ```powershell
-.\gradlew.bat :qr-forge:assembleRelease :qr-forge:generatePomFileForMavenPublication
-Get-Content qr-forge/build/publications/maven/pom-default.xml
+git tag -a "v$version" -m "QrForge $version"
+git push origin "v$version"
 ```
+
+tag push 後は GitHub Actions の Release workflow を開き、`release` environment の承認対象、tag、commit
+を照合してから承認する。workflow が success になるまでは GitHub Release を作成しない。
+
+### 公開後チェック
+
+1. Central Portal の deployment が `PUBLISHED` になったことを確認する。
+2. Maven Central で `io.github.lambdarc:qr-forge:<version>` の POM、AAR、sources JAR、javadoc JAR、
+   Gradle Module Metadata、署名と checksum が参照できることを確認する。
+3. 既存 tag から GitHub Release の draft を作り、生成された release notes を確認して公開する。
+
+```powershell
+gh release create "v$version" `
+  --verify-tag `
+  --generate-notes `
+  --title "QrForge $version" `
+  --draft
+
+gh release edit "v$version" --draft=false
+```
+
+Maven Central への反映には時間差があり得る。Release workflow の success だけで完了とせず、利用者が
+公開座標を解決できるところまで確認する。
+
+### 公開失敗時
+
+- release tag を force push で移動しない。削除して同じ tag を作り直さない。
+- Central Portal で一度でも deployment が作成された version は再利用しない。
+- 原因を修正して `develop` の CI を通し、新しい patch version の tag で再実行する。
+- GitHub Release を先に作っていた場合は公開を取り下げ、Maven Central で参照可能になってから再公開する。
 
 資格情報と署名 key を設定した環境から手動公開する場合は次を使う。
 

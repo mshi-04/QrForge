@@ -130,11 +130,30 @@ Kotlin 側の `require` メッセージも同様に定数を埋め込む。
 
 ## 互換性
 
+### バージョニング方針
+
+Maven Central へ公開する `io.github.lambdarc:qr-forge` は Semantic Versioning に従う。`1.0.0` から、
+この文書に定義した public API とその振る舞いを安定版の契約として扱う。Rust crate と JNI 境界は
+公開成果物ではないため、このバージョニング契約の対象外。
+
+- `MAJOR`: 既存利用者の source compatibility、binary compatibility、または文書化済みの振る舞いを
+  壊す変更。
+- `MINOR`: 後方互換な API・機能追加。既存 API の削除や意味変更は含めない。
+- `PATCH`: 後方互換な不具合・性能・文書・内部実装の修正。public API の追加は含めない。
+
+公開 API の型や JVM descriptor だけでなく、入力の解釈、出力形式、例外分類、値域も互換性契約に
+含める。非互換変更が必要な場合は既存 API を先に deprecated にし、削除や意味変更は次の major
+version で行う。
+
+### 互換性の判断
+
 - 既存 public API の関数名、引数、戻り値型、例外の意味、入力の解釈を変えない。
 - public model の primary constructor に default 値付き parameter を追加する変更は source compatibility
   を保てても、既存 constructor の JVM descriptor が変わるため binary compatibility は保てない。
 - `QrOptions` に設定を追加して binary compatibility も維持する場合は、既存 descriptor の互換
   constructor を残すか、既存 constructor を変えず factory など別の入口を追加する。
+- `QrGenerationException` に subclass を追加すると、利用者の網羅的な `when` が source incompatible に
+  なるため、後方互換な追加として扱わない。
 - 非同期 API は必要性が確認されてから追加する。今は同期のみ。
 - 値域を広げる変更は互換だが、狭める変更は非互換として扱う。
 
