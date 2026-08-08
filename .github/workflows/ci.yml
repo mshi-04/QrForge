@@ -154,6 +154,26 @@ jobs:
           artifacts="$HOME/.m2/repository/io/github/lambdarc/qr-forge/$PUBLICATION_SMOKE_VERSION"
           test -f "$artifacts/qr-forge-$PUBLICATION_SMOKE_VERSION.pom"
           test -f "$artifacts/qr-forge-$PUBLICATION_SMOKE_VERSION.aar"
+          test -f "$artifacts/qr-forge-$PUBLICATION_SMOKE_VERSION-sources.jar"
+          module="$artifacts/qr-forge-$PUBLICATION_SMOKE_VERSION.module"
+          test -f "$module"
+          python3 - "$module" "$PUBLICATION_SMOKE_VERSION" <<'PY'
+          import json, sys
+
+          module_path, version = sys.argv[1], sys.argv[2]
+          metadata = json.load(open(module_path, encoding="utf-8"))
+          component = metadata["component"]
+          coordinates = (component["group"], component["module"], component["version"])
+          if coordinates != ("io.github.lambdarc", "qr-forge", version):
+              print(f"module metadata declares {coordinates}", file=sys.stderr)
+              raise SystemExit(1)
+
+          files = {f["name"] for variant in metadata["variants"] for f in variant.get("files", [])}
+          for required in (f"qr-forge-{version}.aar", f"qr-forge-{version}-sources.jar"):
+              if required not in files:
+                  print(f"{required} is not registered in the module metadata: {sorted(files)}", file=sys.stderr)
+                  raise SystemExit(1)
+          PY
           javadoc="$artifacts/qr-forge-$PUBLICATION_SMOKE_VERSION-javadoc.jar"
           entries="$(unzip -Z1 "$javadoc")"
           for page in \

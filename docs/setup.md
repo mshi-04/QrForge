@@ -366,13 +366,18 @@ Maven Central への反映には時間差があり得る。Release workflow の 
 資格情報と署名 key を設定した環境から手動公開する場合は、release workflow が自動で行う検証を手で行う。
 公開する tag の commit を checkout し、作業ツリーが clean であることを確認してから 3 ABI を再生成する。
 
+手動公開でも tag は先に作る。`$sourceTag` は checkout する既存の tag、`$version` は Maven へ渡す
+version で、両者は `v` の有無だけが違う。まだ tag を作っていない場合は「公開手順」の注釈付き tag 作成を
+先に済ませる。存在しない tag を指定すると `git switch` で止まる。
+
 ```powershell
-$version = "1.0.1" # 例: 公開失敗後に選んだ未使用の patch version
+$version = "1.0.1" # Central Portal に deployment が無い patch version
+$sourceTag = "v$version"
 git fetch --tags origin
-git switch --detach "v$version"
+git switch --detach $sourceTag
 git status --short
 git rev-parse HEAD
-git rev-parse "v$version^{commit}"
+git rev-parse "$sourceTag^{commit}"
 ```
 
 `git status --short` は何も出力せず、2 つの commit ID は一致しなければならない。tag の source から
