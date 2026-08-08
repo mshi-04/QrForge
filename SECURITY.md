@@ -14,8 +14,8 @@ Do not open a public issue or pull request for a suspected vulnerability.
 Please include the affected version, the platform and ABI, and a reproduction — a QR input string
 and the `QrOptions` values are usually enough.
 
-You can expect an acknowledgement within 7 days. Once a fix is ready it ships in a new release, and
-the advisory is published after that release is available on Maven Central.
+Once a fix is ready it ships in a new release, and the advisory is published after that release is
+available on Maven Central.
 
 ## Scope
 
@@ -46,8 +46,7 @@ library.
 影響するバージョン、動作環境と ABI、再現手順を添える。QR の入力文字列と `QrOptions` の値が
 あれば足りることが多い。
 
-7 日以内に受領を返す。修正は新しい release へ含め、Maven Central で参照できるようになってから
-advisory を公開する。
+修正は新しい release へ含め、Maven Central で参照できるようになってから advisory を公開する。
 
 ## 対象範囲
 
