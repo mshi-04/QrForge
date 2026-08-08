@@ -132,5 +132,5 @@ Report vulnerabilities through the process in [SECURITY.md](SECURITY.md), not in
 
 [MIT License](LICENSE)
 
-Copyright notices and full license texts for the Rust crates statically linked into
+Copyright notices and license texts for the Rust crates statically linked into
 `libqrforge.so` are collected in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

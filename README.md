@@ -132,5 +132,5 @@ Maven Central へ公開したバージョンは `io.github.lambdarc:qr-forge:<ve
 
 [MIT License](LICENSE)
 
-`libqrforge.so` へ静的リンクしている Rust crate の著作権表示と license 全文は
+`libqrforge.so` へ静的リンクしている Rust crate の著作権表示と license は
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) にまとめています。

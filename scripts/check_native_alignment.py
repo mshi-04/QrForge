@@ -17,17 +17,17 @@ REBUILD_COMMAND = (
 
 REQUIRED_ALIGNMENT = 16 * 1024
 
+# Android の 16 KB page size 要件は 64bit ABI にだけ掛かる。この directory に 32bit の object が
+# 置かれている状態は、ABI を取り違えたビルドなので失敗として扱う。
+SIXTY_FOUR_BIT_ABIS = frozenset({"arm64-v8a", "x86_64"})
+
 ELF_MAGIC = b"\x7fELF"
 ELFCLASS64 = 2
 PT_LOAD = 1
 
 
 def load_alignments(data: bytes) -> list[int] | None:
-    """The p_align of every PT_LOAD segment, or None when the object is 32-bit.
-
-    Android requires the 16 KB page size only for 64-bit ABIs, so a 32-bit object
-    carrying 4 KB segments is not a failure.
-    """
+    """The p_align of every PT_LOAD segment, or None when the object is 32-bit."""
     if data[:4] != ELF_MAGIC:
         raise ValueError("not an ELF object")
 
@@ -60,6 +60,9 @@ def alignment_errors(root: Path) -> list[str]:
             continue
 
         if alignments is None:
+            if abi in SIXTY_FOUR_BIT_ABIS:
+                errors.append(f"{abi}: {LIBRARY_NAME} is not a 64-bit ELF object")
+
             continue
 
         if not alignments:

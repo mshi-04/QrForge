@@ -2,6 +2,7 @@
 
 QrForge の `libqrforge.so` は、次の Rust crate を静的リンクして配布している。いずれも
 MIT license の条件で再配布しており、各 crate の著作権表示と license 全文を以下に示す。
+crate 自身が license 全文を配布物へ同梱していない場合に限り、上流リポジトリへの参照を示す。
 
 この文書は `python scripts/generate_third_party_notices.py` で生成する。依存を追加・更新したら
 再生成する。QrForge 自体の license は [LICENSE](LICENSE) を参照。

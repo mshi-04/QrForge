@@ -19,8 +19,14 @@ EDGES = "normal,no-proc-macro"
 
 WORKSPACE_CRATES = frozenset({"qr-forge-core", "qr-forge-jni"})
 
-# Every linked crate offers MIT, so the distribution takes MIT uniformly.
+# Every linked crate offers MIT, so the distribution takes MIT uniformly. A dependency that does
+# not offer MIT breaks the uniform choice stated in the header, so generation stops instead.
 CHOSEN_LICENSE = "MIT"
+
+# cesu8 1.1.0 packages no license file. The text exists only upstream, so its notice points at the
+# repository. Any other crate missing its license text is an unreviewed change and stops generation.
+CRATES_WITHOUT_LICENSE_FILE = frozenset({"cesu8"})
+
 LICENSE_FILE_NAMES = (
     "LICENSE-MIT",
     "LICENSE-MIT.txt",
@@ -34,6 +40,7 @@ HEADER = f"""# Third-party notices
 
 QrForge の `libqrforge.so` は、次の Rust crate を静的リンクして配布している。いずれも
 {CHOSEN_LICENSE} license の条件で再配布しており、各 crate の著作権表示と license 全文を以下に示す。
+crate 自身が license 全文を配布物へ同梱していない場合に限り、上流リポジトリへの参照を示す。
 
 この文書は `python scripts/generate_third_party_notices.py` で生成する。依存を追加・更新したら
 再生成する。QrForge 自体の license は [LICENSE](LICENSE) を参照。
@@ -135,6 +142,29 @@ def render(crates: list[tuple[str, str, str, str]], registries: list[Path]) -> t
     return "\n".join(sections) + "\n", missing
 
 
+def ensure_chosen_license_applies(crates: list[tuple[str, str, str, str]]) -> None:
+    without_choice = [
+        f"{name} {version} ({expression})"
+        for name, version, expression, _ in crates
+        if CHOSEN_LICENSE not in expression
+    ]
+    if without_choice:
+        raise RuntimeError(
+            f"these crates do not offer {CHOSEN_LICENSE}, so the uniform license choice in the "
+            f"header no longer holds: {', '.join(without_choice)}"
+        )
+
+
+def ensure_missing_texts_are_known(missing: list[str]) -> None:
+    unexpected = sorted(set(missing) - CRATES_WITHOUT_LICENSE_FILE)
+    if unexpected:
+        raise RuntimeError(
+            "no license text was found for "
+            f"{', '.join(unexpected)}. Run `cargo fetch` so the sources are unpacked, or add the "
+            "crate to CRATES_WITHOUT_LICENSE_FILE after confirming it packages none"
+        )
+
+
 def main() -> int:
     registries = cargo_registry_roots()
     if not registries:
@@ -143,7 +173,9 @@ def main() -> int:
 
     try:
         crates = linked_crates()
+        ensure_chosen_license_applies(crates)
         rendered, missing = render(crates, registries)
+        ensure_missing_texts_are_known(missing)
     except RuntimeError as error:
         print(f"Third-party notices generation failed: {error}", file=sys.stderr)
         return 1
@@ -153,7 +185,7 @@ def main() -> int:
         f"Third-party notices written: {OUTPUT_PATH.relative_to(REPOSITORY_ROOT)} "
         f"({len(crates)} crate(s))."
     )
-    for name in missing:
+    for name in sorted(set(missing)):
         print(f"  {name} ships no license file; the notice points at its repository.")
 
     return 0

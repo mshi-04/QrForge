@@ -9,9 +9,12 @@ pluginManagement {
     // ずれないよう version catalog から読む。
     val androidGradlePluginVersion = file("../gradle/libs.versions.toml")
         .readLines()
-        .first { it.trimStart().startsWith("agp") }
-        .substringAfter('"')
-        .substringBefore('"')
+        .firstOrNull { it.substringBefore('=').trim() == "agp" }
+        ?.substringAfter('=')
+        ?.trim()
+        ?.removeSurrounding("\"")
+        ?.takeIf { it.isNotBlank() }
+        ?: error("agp version was not found in gradle/libs.versions.toml.")
 
     plugins {
         id("com.android.application") version androidGradlePluginVersion
@@ -21,7 +24,12 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        mavenLocal()
+        // 検証対象は直前に publish した AAR に限る。fallback を許すと、同じ座標が Maven Central に
+        // ある version では公開済みの成果物を検証してしまう。
+        exclusiveContent {
+            forRepository { mavenLocal() }
+            filter { includeGroup("io.github.lambdarc") }
+        }
         google()
         mavenCentral()
     }
