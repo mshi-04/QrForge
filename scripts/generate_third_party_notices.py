@@ -15,7 +15,13 @@ JNI_MANIFEST = REPOSITORY_ROOT / "rust" / "qr-forge-jni" / "Cargo.toml"
 
 # The published .so is built for the Android ABIs only, and proc-macro crates run on the host
 # without being linked into it. Both filters keep the notices to what is actually distributed.
-TARGET = "aarch64-linux-android"
+# Every distributed ABI is resolved separately and the results merged, because a target-specific
+# dependency would otherwise be missing from the notices of the ABIs that do link it.
+TARGETS = (
+    "aarch64-linux-android",
+    "armv7-linux-androideabi",
+    "x86_64-linux-android",
+)
 EDGES = "normal,no-proc-macro"
 
 WORKSPACE_CRATES = frozenset({"qr-forge-core", "qr-forge-jni"})
@@ -42,9 +48,11 @@ LICENSE_FILE_NAMES = (
 
 HEADER = f"""# Third-party notices
 
-QrForge の `libqrforge.so` は、次の Rust crate を静的リンクして配布している。いずれも
-{CHOSEN_LICENSE} license の条件で再配布しており、各 crate が配布物へ同梱している著作権表示と
-license 文書を以下に収録する。
+QrForge の `libqrforge.so` は、次の Rust crate を静的リンクして配布している。
+
+一覧の License 列は各 crate が提示する選択肢であり、`OR` で並ぶものはそのいずれかを選べる。QrForge は
+すべての crate について {CHOSEN_LICENSE} を選択して再配布している。各 crate が配布物へ同梱している
+著作権表示と license 文書を以下に収録する。
 
 この文書は `python scripts/generate_third_party_notices.py` で生成する。依存を追加・更新したら
 再生成する。QrForge 自体の license は [LICENSE](LICENSE) を参照。
@@ -60,7 +68,15 @@ def cargo_registry_roots() -> list[Path]:
     return sorted(path for path in source_root.iterdir() if path.is_dir())
 
 
-def linked_crates() -> list[tuple[str, str, str]]:
+def linked_crates() -> list[tuple[str, str, str, str]]:
+    crates: set[tuple[str, str, str, str]] = set()
+    for target in TARGETS:
+        crates |= crates_for_target(target)
+
+    return sorted(crates)
+
+
+def crates_for_target(target: str) -> set[tuple[str, str, str, str]]:
     result = subprocess.run(
         [
             "cargo",
@@ -68,7 +84,7 @@ def linked_crates() -> list[tuple[str, str, str]]:
             "--manifest-path",
             str(JNI_MANIFEST),
             "--target",
-            TARGET,
+            target,
             "--edges",
             EDGES,
             "--prefix",
@@ -82,7 +98,7 @@ def linked_crates() -> list[tuple[str, str, str]]:
         encoding="utf-8",
     )
     if result.returncode != 0:
-        raise RuntimeError(f"cargo tree failed: {result.stderr.strip()}")
+        raise RuntimeError(f"cargo tree failed for {target}: {result.stderr.strip()}")
 
     crates = set()
     for line in result.stdout.splitlines():
@@ -101,7 +117,7 @@ def linked_crates() -> list[tuple[str, str, str]]:
 
         crates.add((name, version, license_expression.strip(), repository.strip()))
 
-    return sorted(crates)
+    return crates
 
 
 def license_text(name: str, version: str, registries: list[Path]) -> str | None:

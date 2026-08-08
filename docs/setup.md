@@ -366,25 +366,75 @@ Maven Central への反映には時間差があり得る。Release workflow の 
 資格情報と署名 key を設定した環境から手動公開する場合は、release workflow が自動で行う検証を手で行う。
 公開する tag の commit を checkout し、作業ツリーが clean であることを確認してから 3 ABI を再生成する。
 
+手動公開でも tag は先に作る。`$sourceTag` は checkout する既存の tag、`$version` は Maven へ渡す
+version で、両者は `v` の有無だけが違う。まだ tag を作っていない場合は「公開手順」の注釈付き tag 作成を
+先に済ませる。存在しない tag を指定すると `git switch` で止まる。
+
+手動公開は workflow の検証を迂回する経路なので、workflow が落とす条件をすべて手で確認する。PowerShell は
+外部 command の非ゼロ終了で自動的に停止しないため、`$LASTEXITCODE` を見て `throw` する。目視確認に頼ると
+見落としがそのまま公開になる。
+
 ```powershell
-$version = "1.0.1" # 例: 公開失敗後に選んだ未使用の patch version
+$version = "1.0.1" # Central Portal に deployment が無い patch version
+$sourceTag = "v$version"
+if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "version must be MAJOR.MINOR.PATCH" }
+
 git fetch --tags origin
-git switch --detach "v$version"
-git status --short
-git rev-parse HEAD
-git rev-parse "v$version^{commit}"
+if ($LASTEXITCODE -ne 0) { throw "tag の fetch に失敗した" }
+git fetch --no-tags origin main
+if ($LASTEXITCODE -ne 0) { throw "main の fetch に失敗した" }
+
+$remoteTag = @(git ls-remote --exit-code origin "refs/tags/$sourceTag")
+if ($LASTEXITCODE -ne 0 -or $remoteTag.Count -eq 0) { throw "$sourceTag が origin に存在しない" }
+
+git switch --detach $sourceTag
+if ($LASTEXITCODE -ne 0) { throw "$sourceTag を checkout できない" }
+
+$dirty = @(git status --porcelain)
+if ($LASTEXITCODE -ne 0 -or $dirty.Count -ne 0) { throw "作業ツリーが clean でない" }
+
+$headCommit = git rev-parse 'HEAD^{commit}'
+if ($LASTEXITCODE -ne 0) { throw "HEAD を解決できない" }
+$tagCommit = git rev-parse "$sourceTag^{commit}"
+if ($LASTEXITCODE -ne 0) { throw "$sourceTag を解決できない" }
+$mainCommit = git rev-parse 'FETCH_HEAD^{commit}'
+if ($LASTEXITCODE -ne 0) { throw "FETCH_HEAD を解決できない" }
+if ($headCommit -ne $tagCommit -or $tagCommit -ne $mainCommit) {
+    throw "release commit が $sourceTag と origin/main の最新に一致しない"
+}
+
+$conclusions = @(gh api "repos/lambdarc/qr-forge/commits/$headCommit/check-runs" --paginate `
+    --jq '.check_runs[].conclusion')
+if ($LASTEXITCODE -ne 0) { throw "check run を取得できない" }
+if ($conclusions.Count -eq 0) { throw "release commit に check run が無い" }
+$unfinished = @($conclusions | Where-Object { $_ -ne 'success' })
+if ($unfinished.Count -ne 0) { throw "success でない check run がある: $($unfinished -join ', ')" }
 ```
 
-`git status --short` は何も出力せず、2 つの commit ID は一致しなければならない。tag の source から
-`.so` を再生成し、公開する version で成果物を確認する。
+この block は workflow の「Validate release tag」「Validate release commit」「Require successful CI on
+release commit」に対応する。最後まで例外なく到達した場合だけ次へ進む。`throw` で止まったら公開しない。
+
+`release commit が一致しない` で止まる場合、tag は `main` の最新を指していない。古い source を公開する
+ことになるため、`main` へのマージからやり直す。`$sourceTag が origin に存在しない` で止まる場合、tag が
+push されていない。`git fetch --tags` はローカル専用 tag を削除しないため、この確認がないと push して
+いない tag の source を公開できてしまう。
+
+続けて tag の source から `.so` を再生成し、公開する version で成果物を確認する。ここも失敗を検出せずに
+進むと、生成に失敗した成果物や前回のビルド結果を公開することになる。
 
 ```powershell
 cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o qr-forge/src/main/jniLibs build --release `
   --manifest-path rust/qr-forge-jni/Cargo.toml
+if ($LASTEXITCODE -ne 0) { throw ".so の再生成に失敗した" }
+python scripts/check_native_alignment.py
+if ($LASTEXITCODE -ne 0) { throw "64bit ABI が 16 KB 境界に整列していない" }
+
 .\gradlew.bat :qr-forge:assembleRelease :qr-forge:publishToMavenLocal `
   "-PVERSION_NAME=$version" `
   --no-configuration-cache
+if ($LASTEXITCODE -ne 0) { throw "release 成果物の生成に失敗した" }
 python scripts/check_public_api.py
+if ($LASTEXITCODE -ne 0) { throw "公開 API が qrforge.api と一致しない" }
 ```
 
 再生成した `.so` はコミット済みのものと差分が出得る。この差分は commit せず、「リリース前チェック」と
@@ -394,6 +444,7 @@ python scripts/check_public_api.py
 .\gradlew.bat :qr-forge:publishAndReleaseToMavenCentral `
   "-PVERSION_NAME=$version" `
   "-PsignAllPublications=true"
+if ($LASTEXITCODE -ne 0) { throw "Maven Central への公開に失敗した" }
 ```
 
 `$version` は release tag の `v$version` と生成 POM の version にも同じ値を使う。失敗した公開で使った
