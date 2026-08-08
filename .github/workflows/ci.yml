@@ -55,10 +55,7 @@ jobs:
           java-version: "17"
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
-          components: rustfmt, clippy
+        run: rustup toolchain install
 
       - name: Check Rust format
         run: cargo fmt --all -- --check
@@ -79,7 +76,7 @@ jobs:
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;27.2.12479018"
 
       - name: Install cargo-ndk
-        run: cargo install cargo-ndk --locked
+        run: cargo install cargo-ndk --version 4.1.2 --locked
 
       - name: Build native libraries
         run: |
@@ -92,6 +89,9 @@ jobs:
           test -f "$RUNNER_TEMP/qr-forge-jniLibs/arm64-v8a/libqrforge.so"
           test -f "$RUNNER_TEMP/qr-forge-jniLibs/armeabi-v7a/libqrforge.so"
           test -f "$RUNNER_TEMP/qr-forge-jniLibs/x86_64/libqrforge.so"
+
+      - name: Check 16 KB page size alignment
+        run: python3 scripts/check_native_alignment.py "$RUNNER_TEMP/qr-forge-jniLibs"
 
   rust-audit:
     name: Rust Audit

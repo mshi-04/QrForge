@@ -9,8 +9,8 @@
 | Android Studio | 最新安定版 | `compileSdk 37.1` / `minSdk 28` をビルドできること |
 | JDK | 17 | Gradle build daemon・CI は Adoptium 17 を使用する |
 | Android NDK | r27 以降 | `ANDROID_NDK_HOME` / `ANDROID_NDK_ROOT` を設定する |
-| Rust toolchain | stable | `rustfmt`・`clippy` component 込み |
-| cargo-ndk | native library ビルド時は必須 | `cargo install cargo-ndk` |
+| Rust toolchain | `rust-toolchain.toml` で固定 | `rustup toolchain install` で channel・component・target が揃う |
+| cargo-ndk | native library ビルド時は必須 | `cargo install cargo-ndk --version 4.1.2 --locked` |
 | cargo-deny | 依存監査をローカルで再現する場合 | `cargo install cargo-deny --locked` |
 | Python | 3.10 以降 | repository 整合性 checker、公開 API checker に使用 |
 
@@ -86,6 +86,13 @@ jar tf qr-forge/build/outputs/apk/androidTest/debug/qr-forge-debug-androidTest.a
 
 各コマンドで 3 ABI が 1 行ずつ表示されることを確認する。欠けている ABI があれば再生成・同梱は
 未完了として扱う。
+
+- 64bit ABI は 16 KB page size の端末で読み込めるよう、LOAD segment が 16 KB 境界に整列していなければ
+  ならない。`armeabi-v7a` は 32bit のため対象外。
+
+```powershell
+python scripts/check_native_alignment.py
+```
 
 - 再ビルドしていない場合は、Android 側のテストが緑でも「native 側は未検証」として報告する。
 
@@ -393,7 +400,7 @@ workflow は `.github/workflows/ci.yml`。`main`・`develop`・`feature/**` を 
 | CI job | ローカルで相当するコマンド |
 |--------|--------------------------|
 | `consistency` | `python scripts/check_repo_consistency.py` |
-| `rust` | `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets -- -D warnings`、`cargo test --workspace --all-targets`、`cargo test -p qr-forge-core --doc`、`cargo build --manifest-path rust/qr-forge-jni/Cargo.toml`、`cargo ndk`（3 ABI の `.so` 生成確認まで） |
+| `rust` | `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets -- -D warnings`、`cargo test --workspace --all-targets`、`cargo test -p qr-forge-core --doc`、`cargo build --manifest-path rust/qr-forge-jni/Cargo.toml`、`cargo ndk`（3 ABI の `.so` 生成確認まで）、`python scripts/check_native_alignment.py` |
 | `rust-audit` | `cargo deny check` |
 | `kotlin-lint` | `.\gradlew.bat :qr-forge:ktlintCheck :app:ktlintCheck ktlintKotlinScriptCheck` |
 | `android` | `.\gradlew.bat :qr-forge:assembleRelease` と `python scripts/check_public_api.py`、`.\gradlew.bat :qr-forge:publishToMavenLocal "-PVERSION_NAME=0.0.0"`、`.\gradlew.bat :app:assembleRelease :qr-forge:assembleRelease` と `python scripts/check_consumer_proguard.py`、`.\gradlew.bat :qr-forge:testDebugUnitTest :qr-forge:assembleDebug :qr-forge:assembleDebugAndroidTest :app:assembleDebug` |
