@@ -154,6 +154,21 @@ jobs:
           artifacts="$HOME/.m2/repository/io/github/lambdarc/qr-forge/$PUBLICATION_SMOKE_VERSION"
           test -f "$artifacts/qr-forge-$PUBLICATION_SMOKE_VERSION.pom"
           test -f "$artifacts/qr-forge-$PUBLICATION_SMOKE_VERSION.aar"
+          javadoc="$artifacts/qr-forge-$PUBLICATION_SMOKE_VERSION-javadoc.jar"
+          entries="$(unzip -Z1 "$javadoc")"
+          for page in \
+            qr-forge/io.github.lambdarc.qrforge/-qr-generator/index.html \
+            qr-forge/io.github.lambdarc.qrforge/-qr-options/index.html \
+            qr-forge/io.github.lambdarc.qrforge/-qr-generation-exception/index.html; do
+            if ! grep -Fxq "$page" <<<"$entries"; then
+              echo "The javadoc JAR is missing $page." >&2
+              exit 1
+            fi
+          done
+          if grep -qE '(^|/)internal(/|$)' <<<"$entries"; then
+            echo "The javadoc JAR must not document the internal package." >&2
+            exit 1
+          fi
 
       - name: Build consumer from published coordinates
         shell: bash

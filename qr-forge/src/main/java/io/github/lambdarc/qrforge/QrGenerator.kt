@@ -4,6 +4,15 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import io.github.lambdarc.qrforge.internal.NativeQrGenerator
 
+/**
+ * Generates QR codes.
+ *
+ * Every failure is raised as an exception; no method reports failure through `null`, an empty
+ * array, or a nullable return type.
+ *
+ * From Java the default argument is available as an overload, so both `createBitmap(String)` and
+ * `createBitmap(String, QrOptions)` exist.
+ */
 object QrGenerator {
     private val DEFAULT_OPTIONS = QrOptions()
 
@@ -11,6 +20,25 @@ object QrGenerator {
 
     private const val MAX_BITMAP_BYTES = 128L * 1024 * 1024
 
+    /**
+     * Encodes [text] and decodes the result into a `Bitmap`.
+     *
+     * The bitmap is `ARGB_8888`, because it is decoded with the default `BitmapFactory` settings.
+     * Before decoding, the image dimensions alone are read and the resulting allocation is compared
+     * against a 128 MiB budget, so an oversized request fails with [QrGenerationException.DecodeFailed]
+     * rather than an `OutOfMemoryError`.
+     *
+     * @param text Text to encode as UTF-8. Must not be blank. Surrounding whitespace is preserved
+     *   and encoded as given — it is not trimmed.
+     * @param options Size and quiet zone. See [QrOptions.size] for why the output is usually larger
+     *   than the requested size.
+     * @throws IllegalArgumentException if [text] is blank.
+     * @throws QrGenerationException.NativeLibraryUnavailable if the native library is missing.
+     * @throws QrGenerationException.GenerationFailed if the text cannot be encoded, which includes
+     *   text too long for the QR capacity.
+     * @throws QrGenerationException.DecodeFailed if the image cannot be decoded or would exceed the
+     *   bitmap budget.
+     */
     @JvmOverloads
     fun createBitmap(text: String, options: QrOptions = DEFAULT_OPTIONS): Bitmap {
         val bytes = createPngBytes(text, options)
@@ -27,6 +55,22 @@ object QrGenerator {
         }
     }
 
+    /**
+     * Encodes [text] and returns the PNG bytes.
+     *
+     * The result is a grayscale (L8) square image starting with the PNG signature. Unlike
+     * [createBitmap] this never allocates a bitmap, so it has no memory budget check and is the
+     * cheaper option when the caller only needs to store or transmit the image.
+     *
+     * @param text Text to encode as UTF-8. Must not be blank. Surrounding whitespace is preserved
+     *   and encoded as given — it is not trimmed.
+     * @param options Size and quiet zone. See [QrOptions.size] for why the output is usually larger
+     *   than the requested size.
+     * @throws IllegalArgumentException if [text] is blank.
+     * @throws QrGenerationException.NativeLibraryUnavailable if the native library is missing.
+     * @throws QrGenerationException.GenerationFailed if the text cannot be encoded, which includes
+     *   text too long for the QR capacity.
+     */
     @JvmOverloads
     fun createPngBytes(text: String, options: QrOptions = DEFAULT_OPTIONS): ByteArray =
         createPngBytes(text, options, NativeQrGenerator::generateQrPng)
