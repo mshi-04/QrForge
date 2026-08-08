@@ -21,7 +21,7 @@ versionName.orNull?.let { requestedVersion ->
 android {
     namespace = "com.appvoyager.qrforge"
     compileSdk {
-        version = release(36) {
+        version = release(37) {
             minorApiLevel = 1
         }
     }

@@ -6,7 +6,7 @@
 
 | ツール | 条件 | 備考 |
 |--------|------|------|
-| Android Studio | 最新安定版 | `compileSdk 37.1`（`qr-forge` は `36.1`）/ `minSdk 28` をビルドできること |
+| Android Studio | 最新安定版 | `compileSdk 37.1` / `minSdk 28` をビルドできること |
 | JDK | 17 | Gradle build daemon・CI は Adoptium 17 を使用する |
 | Android NDK | r27 以降 | `ANDROID_NDK_HOME` / `ANDROID_NDK_ROOT` を設定する |
 | Rust toolchain | stable | `rustfmt`・`clippy` component 込み |
