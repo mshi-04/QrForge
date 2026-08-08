@@ -161,7 +161,7 @@ python scripts/check_consumer_proguard.py
 
 - `NativeQrGenerator.nativeGenerateQrPng` が descriptor `(Ljava/lang/String;II)[B` で存在する
 - `NativeQrGenerator$GenerationFailed` の `<init>(Ljava/lang/String;)V` が存在する
-- `com.appvoyager.qrforge` 配下で DEX に残る型が、上記 2 つ**だけ**である
+- `io.github.lambdarc.qrforge` 配下で DEX に残る型が、上記 2 つ**だけ**である
 - release AAR の `proguard.txt` が `consumer-rules.pro` と一致する
 
 3 番目は縮小が効いているかと keep 範囲の広さを同時に見る。縮小を切れば他の型が残り、keep を
@@ -197,7 +197,7 @@ consumer rule だけで JNI 契約が保たれているかを確かめられな�
 `--tests` は `connectedDebugAndroidTest` では効かない。instrumentation runner の引数を使い、PowerShell では引数全体を quote する。
 
 ```powershell
-.\gradlew.bat :qr-forge:connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=com.appvoyager.qrforge.QrGeneratorInstrumentedTest"
+.\gradlew.bat :qr-forge:connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=io.github.lambdarc.qrforge.QrGeneratorInstrumentedTest"
 ```
 
 ## 変更後の確認フロー

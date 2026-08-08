@@ -22,10 +22,10 @@ ASSEMBLE_COMMAND = (
     else "./gradlew :app:assembleRelease :qr-forge:assembleRelease"
 )
 
-LIBRARY_PREFIX = "Lcom/appvoyager/qrforge/"
-SAMPLE_PREFIX = "Lcom/appvoyager/qrforge/sample/"
-NATIVE_OWNER = "Lcom/appvoyager/qrforge/internal/NativeQrGenerator;"
-GENERATION_FAILED = "Lcom/appvoyager/qrforge/internal/NativeQrGenerator$GenerationFailed;"
+LIBRARY_PREFIX = "Lio/github/lambdarc/qrforge/"
+SAMPLE_PREFIX = "Lio/github/lambdarc/qrforge/sample/"
+NATIVE_OWNER = "Lio/github/lambdarc/qrforge/internal/NativeQrGenerator;"
+GENERATION_FAILED = "Lio/github/lambdarc/qrforge/internal/NativeQrGenerator$GenerationFailed;"
 
 # Rust resolves these three by name: FindClass on the owner and on the exception, GetStaticMethodID
 # on the native entry point, and NewObject on the exception's String constructor.

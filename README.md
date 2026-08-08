@@ -28,7 +28,7 @@ dependencies {
 ### Bitmap を生成する
 
 ```kotlin
-import com.appvoyager.qrforge.QrGenerator
+import io.github.lambdarc.qrforge.QrGenerator
 
 val bitmap = QrGenerator.createBitmap("https://example.com")
 imageView.setImageBitmap(bitmap)
@@ -37,7 +37,7 @@ imageView.setImageBitmap(bitmap)
 ### PNG データを生成する
 
 ```kotlin
-import com.appvoyager.qrforge.QrGenerator
+import io.github.lambdarc.qrforge.QrGenerator
 
 val pngBytes: ByteArray = QrGenerator.createPngBytes("Hello QR")
 ```
@@ -45,8 +45,8 @@ val pngBytes: ByteArray = QrGenerator.createPngBytes("Hello QR")
 ### サイズと余白を指定する
 
 ```kotlin
-import com.appvoyager.qrforge.QrGenerator
-import com.appvoyager.qrforge.QrOptions
+import io.github.lambdarc.qrforge.QrGenerator
+import io.github.lambdarc.qrforge.QrOptions
 
 val bitmap = QrGenerator.createBitmap(
     text = "https://example.com",
@@ -80,8 +80,8 @@ QR module の境界に合わせて拡大するため、実際の出力画像は 
 `QrGenerationException` は sealed class なので、失敗の種類を `when` で分岐できます。
 
 ```kotlin
-import com.appvoyager.qrforge.QrGenerationException
-import com.appvoyager.qrforge.QrGenerator
+import io.github.lambdarc.qrforge.QrGenerationException
+import io.github.lambdarc.qrforge.QrGenerator
 
 try {
     val bitmap = QrGenerator.createBitmap("https://example.com")

@@ -8,11 +8,11 @@ use jni::JNIEnv;
 use qr_forge_core::{generate_qr_png, QrGenerationError, QrOptions};
 
 const GENERATION_FAILED_CLASS: &str =
-    "com/appvoyager/qrforge/internal/NativeQrGenerator$GenerationFailed";
+    "io/github/lambdarc/qrforge/internal/NativeQrGenerator$GenerationFailed";
 const ILLEGAL_ARGUMENT_EXCEPTION_CLASS: &str = "java/lang/IllegalArgumentException";
 
 #[no_mangle]
-pub extern "system" fn Java_com_appvoyager_qrforge_internal_NativeQrGenerator_nativeGenerateQrPng<
+pub extern "system" fn Java_io_github_lambdarc_qrforge_internal_NativeQrGenerator_nativeGenerateQrPng<
     'local,
 >(
     mut env: JNIEnv<'local>,

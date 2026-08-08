@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.appvoyager.qrforge.sample"
+    namespace = "io.github.lambdarc.qrforge.sample"
     compileSdk {
         version = release(37) {
             minorApiLevel = 1
@@ -12,7 +12,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.appvoyager.qrforge.sample"
+        applicationId = "io.github.lambdarc.qrforge.sample"
         minSdk = 28
         targetSdk { version = release(37) }
         versionCode = 1
