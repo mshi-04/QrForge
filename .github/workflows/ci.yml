@@ -129,6 +129,8 @@ jobs:
   android:
     name: Android Build
     runs-on: ubuntu-latest
+    env:
+      PUBLICATION_SMOKE_VERSION: "0.0.0"
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -146,14 +148,21 @@ jobs:
           python3 scripts/check_public_api.py
 
       - name: Verify Maven publication
-        env:
-          PUBLICATION_SMOKE_VERSION: "0.0.0"
         shell: bash
         run: |
           ./gradlew :qr-forge:publishToMavenLocal "-PVERSION_NAME=$PUBLICATION_SMOKE_VERSION" --no-daemon --no-configuration-cache
           artifacts="$HOME/.m2/repository/io/github/lambdarc/qr-forge/$PUBLICATION_SMOKE_VERSION"
           test -f "$artifacts/qr-forge-$PUBLICATION_SMOKE_VERSION.pom"
           test -f "$artifacts/qr-forge-$PUBLICATION_SMOKE_VERSION.aar"
+
+      - name: Build consumer from published coordinates
+        shell: bash
+        run: |
+          ./gradlew -p consumer-smoke assembleRelease "-PQR_FORGE_VERSION=$PUBLICATION_SMOKE_VERSION" --no-daemon
+          apk=consumer-smoke/build/outputs/apk/release/consumer-smoke-release-unsigned.apk
+          abis="$(unzip -Z1 "$apk" | grep -cE '^lib/(arm64-v8a|armeabi-v7a|x86_64)/libqrforge\.so$')"
+          test "$abis" -eq 3
+          python3 scripts/check_consumer_proguard.py "$apk"
 
       - name: Check consumer ProGuard rules
         run: |

@@ -170,6 +170,28 @@ python scripts/check_consumer_proguard.py
 
 `app` の `isMinifyEnabled` は、この検査を成立させるために有効にしている。無効へ戻さない。
 
+## 公開座標からの consumer 検証
+
+`app` は `:qr-forge` を project dependency として使うため、公開メタデータ経由の解決は通らない。
+`consumer-smoke/` はルートの build に含めない独立した Gradle build で、`mavenLocal()` から
+`io.github.lambdarc:qr-forge` を座標で解決し、minify 有効で組み立てる。POM と Gradle Module
+Metadata の不備、AAR 同梱 `proguard.txt` が利用側 R8 へ効かない状態は、この経路でしか検出できない。
+
+独立した build のため Android SDK の位置は `ANDROID_HOME` から解決する。設定していない環境では
+`consumer-smoke/local.properties` に `sdk.dir` を置く。
+
+```powershell
+.\gradlew.bat :qr-forge:publishToMavenLocal "-PVERSION_NAME=0.0.0" --no-configuration-cache
+.\gradlew.bat -p consumer-smoke assembleRelease "-PQR_FORGE_VERSION=0.0.0"
+python scripts/check_consumer_proguard.py consumer-smoke/build/outputs/apk/release/consumer-smoke-release-unsigned.apk
+```
+
+`check_consumer_proguard.py` は APK を引数で受け取ると、その APK だけを検査する。引数なしの
+呼び出しは `app` の release APK と release AAR の `proguard.txt` を検査する。
+
+`consumer-smoke/proguard-rules.pro` は空のまま維持する。keep rule を足すと、AAR 同梱の
+consumer rule だけで JNI 契約が保たれているかを確かめられなくなる。
+
 ## instrumented test のクラス絞り込み
 
 `--tests` は `connectedDebugAndroidTest` では効かない。instrumentation runner の引数を使い、PowerShell では引数全体を quote する。
@@ -215,6 +237,9 @@ artifact ID、Gradle project/module、Rust package などの機械識別子に�
    だけに bypass を許可する。
 5. GitHub Actions に `release` environment を作り、required reviewer と `v*` tag だけを許可する
    deployment rule を設定する。可能なら workflow 実行者自身による承認と管理者 bypass を禁止する。
+   承認できる維持者が 1 人しかいない間は self-review 禁止を有効にしない。environment の required
+   reviewer には bypass の仕組みがなく、有効にすると tag を push した本人が承認できずリリースが
+   止まる。2 人目の維持者が加わった時点で有効にする。
 6. `release` environment に次の secrets を登録する。
 
 | Secret | 内容 |
@@ -403,7 +428,7 @@ workflow は `.github/workflows/ci.yml`。`main`・`develop`・`feature/**` を 
 | `rust` | `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets -- -D warnings`、`cargo test --workspace --all-targets`、`cargo test -p qr-forge-core --doc`、`cargo build --manifest-path rust/qr-forge-jni/Cargo.toml`、`cargo ndk`（3 ABI の `.so` 生成確認まで）、`python scripts/check_native_alignment.py` |
 | `rust-audit` | `cargo deny check` |
 | `kotlin-lint` | `.\gradlew.bat :qr-forge:ktlintCheck :app:ktlintCheck ktlintKotlinScriptCheck` |
-| `android` | `.\gradlew.bat :qr-forge:assembleRelease` と `python scripts/check_public_api.py`、`.\gradlew.bat :qr-forge:publishToMavenLocal "-PVERSION_NAME=0.0.0"`、`.\gradlew.bat :app:assembleRelease :qr-forge:assembleRelease` と `python scripts/check_consumer_proguard.py`、`.\gradlew.bat :qr-forge:testDebugUnitTest :qr-forge:assembleDebug :qr-forge:assembleDebugAndroidTest :app:assembleDebug` |
+| `android` | `.\gradlew.bat :qr-forge:assembleRelease` と `python scripts/check_public_api.py`、`.\gradlew.bat :qr-forge:publishToMavenLocal "-PVERSION_NAME=0.0.0"`、「公開座標からの consumer 検証」の 3 コマンド、`.\gradlew.bat :app:assembleRelease :qr-forge:assembleRelease` と `python scripts/check_consumer_proguard.py`、`.\gradlew.bat :qr-forge:testDebugUnitTest :qr-forge:assembleDebug :qr-forge:assembleDebugAndroidTest :app:assembleDebug` |
 | `instrumented` | repository にコミット済みの `x86_64` `.so` を使う `.\gradlew.bat :qr-forge:connectedDebugAndroidTest`（CI は API 28 / 34 emulator） |
 
 `kotlin-lint` の指摘は `.\gradlew.bat ktlintFormat` で自動修正できる。code style と適用しない
