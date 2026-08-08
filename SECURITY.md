@@ -19,7 +19,7 @@ the advisory is published after that release is available on Maven Central.
 
 ## Scope
 
-QrForge decodes untrusted text into a QR image across a JNI boundary, so the following are in scope.
+QrForge encodes untrusted text into a QR image across a JNI boundary, so the following are in scope.
 
 - Memory safety issues in the Rust core or the JNI bridge, including panics that cross the boundary
 - Crashes or unbounded allocation triggered by attacker-controlled input text or `QrOptions`

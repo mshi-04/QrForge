@@ -24,10 +24,10 @@ WORKSPACE_CRATES = frozenset({"qr-forge-core", "qr-forge-jni"})
 # not offer MIT breaks the uniform choice stated in the header, so generation stops instead.
 CHOSEN_LICENSE = "MIT"
 
-# cesu8 1.1.0 packages no license file. The text exists only upstream, so its notice points at the
-# repository. The version is part of the key because a later release may start packaging one, and
-# any other crate missing its license text is an unreviewed change that stops generation.
-CRATES_WITHOUT_LICENSE_FILE = frozenset({("cesu8", "1.1.0")})
+# Every linked crate currently ships a license document, so no crate is exempt. A dependency that
+# ships none is an unreviewed change: generation stops rather than emitting a notice that carries
+# no copyright line. Entries are keyed by name and version because a later release may add one.
+CRATES_WITHOUT_LICENSE_FILE: frozenset[tuple[str, str]] = frozenset()
 
 LICENSE_FILE_NAMES = (
     "LICENSE-MIT",
@@ -36,13 +36,15 @@ LICENSE_FILE_NAMES = (
     "LICENSE",
     "LICENSE.txt",
     "LICENSE.md",
+    # cesu8 carries Rust Project code and ships its copyright notice under this name instead.
+    "COPYRIGHT-RUST.txt",
 )
 
 HEADER = f"""# Third-party notices
 
 QrForge の `libqrforge.so` は、次の Rust crate を静的リンクして配布している。いずれも
-{CHOSEN_LICENSE} license の条件で再配布しており、各 crate の著作権表示と license 全文を以下に示す。
-crate 自身が license 全文を配布物へ同梱していない場合に限り、上流リポジトリへの参照を示す。
+{CHOSEN_LICENSE} license の条件で再配布しており、各 crate が配布物へ同梱している著作権表示と
+license 文書を以下に収録する。
 
 この文書は `python scripts/generate_third_party_notices.py` で生成する。依存を追加・更新したら
 再生成する。QrForge 自体の license は [LICENSE](LICENSE) を参照。
@@ -139,7 +141,7 @@ def render(
             )
             continue
 
-        sections.append("```")
+        sections.append("```text")
         sections.append(text)
         sections.append("```\n")
 
