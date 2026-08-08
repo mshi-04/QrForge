@@ -260,7 +260,7 @@ upload・release する。Central は同じ座標・version の上書きを許�
 workflow は公開前に次を検証する。
 
 - tag が `vMAJOR.MINOR.PATCH` 形式であること
-- tag の指す commit が protected branch である `develop` に含まれること
+- tag の指す commit が remote から取得した `develop` の最新 commit と一致すること
 - その commit のすべての CI check run が success で終わっていること
 - 公開 API が `qr-forge/api/qrforge.api` と一致すること
 
