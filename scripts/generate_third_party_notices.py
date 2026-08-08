@@ -6,6 +6,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+from collections import deque
 from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -24,8 +25,9 @@ WORKSPACE_CRATES = frozenset({"qr-forge-core", "qr-forge-jni"})
 CHOSEN_LICENSE = "MIT"
 
 # cesu8 1.1.0 packages no license file. The text exists only upstream, so its notice points at the
-# repository. Any other crate missing its license text is an unreviewed change and stops generation.
-CRATES_WITHOUT_LICENSE_FILE = frozenset({"cesu8"})
+# repository. The version is part of the key because a later release may start packaging one, and
+# any other crate missing its license text is an unreviewed change that stops generation.
+CRATES_WITHOUT_LICENSE_FILE = frozenset({("cesu8", "1.1.0")})
 
 LICENSE_FILE_NAMES = (
     "LICENSE-MIT",
@@ -111,7 +113,9 @@ def license_text(name: str, version: str, registries: list[Path]) -> str | None:
     return None
 
 
-def render(crates: list[tuple[str, str, str, str]], registries: list[Path]) -> tuple[str, list[str]]:
+def render(
+    crates: list[tuple[str, str, str, str]], registries: list[Path]
+) -> tuple[str, list[tuple[str, str]]]:
     sections = [
         HEADER,
         "\n## 一覧\n",
@@ -128,7 +132,7 @@ def render(crates: list[tuple[str, str, str, str]], registries: list[Path]) -> t
         sections.append(f"### {name} {version}\n")
         text = license_text(name, version, registries)
         if text is None:
-            missing.append(name)
+            missing.append((name, version))
             source = f"<{repository}>" if repository else "上流リポジトリ"
             sections.append(
                 f"この crate は license 全文を配布物へ同梱していない。著作権表示は {source} を参照。\n"
@@ -142,26 +146,97 @@ def render(crates: list[tuple[str, str, str, str]], registries: list[Path]) -> t
     return "\n".join(sections) + "\n", missing
 
 
+def tokenize_spdx(expression: str) -> list[str]:
+    # Cargo still carries the pre-SPDX `A/B` form, which means the same as `A OR B`.
+    normalized = expression.replace("/", " OR ").replace("(", " ( ").replace(")", " ) ")
+    return normalized.split()
+
+
+def parse_spdx_or(tokens: deque[str], license_id: str) -> bool:
+    value = parse_spdx_and(tokens, license_id)
+    while tokens and tokens[0] == "OR":
+        tokens.popleft()
+        right = parse_spdx_and(tokens, license_id)
+        value = value or right
+
+    return value
+
+
+def parse_spdx_and(tokens: deque[str], license_id: str) -> bool:
+    value = parse_spdx_atom(tokens, license_id)
+    while tokens and tokens[0] == "AND":
+        tokens.popleft()
+        right = parse_spdx_atom(tokens, license_id)
+        value = value and right
+
+    return value
+
+
+def parse_spdx_atom(tokens: deque[str], license_id: str) -> bool:
+    if not tokens:
+        raise ValueError("expression ended unexpectedly")
+
+    token = tokens.popleft()
+    if token == "(":
+        value = parse_spdx_or(tokens, license_id)
+        if not tokens or tokens.popleft() != ")":
+            raise ValueError("unbalanced parenthesis")
+
+        return value
+
+    if token in {")", "AND", "OR"}:
+        raise ValueError(f"misplaced {token}")
+
+    return token == license_id
+
+
+def satisfied_by(expression: str, license_id: str) -> bool:
+    """Whether taking license_id on its own satisfies the expression.
+
+    Substring matching would accept `MIT-0`, a different license, and `Apache-2.0 AND MIT`, which
+    carries obligations the uniform choice does not cover. Anything this parser cannot read, such
+    as a `WITH` exception, is left unparsed so the caller stops and asks for review.
+    """
+    tokens = deque(tokenize_spdx(expression))
+    if not tokens:
+        raise ValueError("expression is empty")
+
+    value = parse_spdx_or(tokens, license_id)
+    if tokens:
+        raise ValueError(f"unparsed tokens: {' '.join(tokens)}")
+
+    return value
+
+
 def ensure_chosen_license_applies(crates: list[tuple[str, str, str, str]]) -> None:
-    without_choice = [
-        f"{name} {version} ({expression})"
-        for name, version, expression, _ in crates
-        if CHOSEN_LICENSE not in expression
-    ]
+    without_choice = []
+    for name, version, expression, _ in crates:
+        try:
+            applies = satisfied_by(expression, CHOSEN_LICENSE)
+        except ValueError as error:
+            raise RuntimeError(
+                f"{name} {version} has a license expression this script cannot read "
+                f"('{expression}': {error}). Confirm the terms and extend the parser"
+            ) from error
+
+        if not applies:
+            without_choice.append(f"{name} {version} ({expression})")
+
     if without_choice:
         raise RuntimeError(
-            f"these crates do not offer {CHOSEN_LICENSE}, so the uniform license choice in the "
-            f"header no longer holds: {', '.join(without_choice)}"
+            f"these crates cannot be redistributed under {CHOSEN_LICENSE} alone, so the uniform "
+            f"license choice stated in the header no longer holds: {', '.join(without_choice)}"
         )
 
 
-def ensure_missing_texts_are_known(missing: list[str]) -> None:
+def ensure_missing_texts_are_known(missing: list[tuple[str, str]]) -> None:
     unexpected = sorted(set(missing) - CRATES_WITHOUT_LICENSE_FILE)
     if unexpected:
+        listed = ", ".join(f"{name} {version}" for name, version in unexpected)
         raise RuntimeError(
-            "no license text was found for "
-            f"{', '.join(unexpected)}. Run `cargo fetch` so the sources are unpacked, or add the "
-            "crate to CRATES_WITHOUT_LICENSE_FILE after confirming it packages none"
+            f"no license text was found for {listed}. Run `cargo fetch` so the sources are "
+            "unpacked, or add the crate and version to CRATES_WITHOUT_LICENSE_FILE after "
+            "confirming that release packages none"
         )
 
 
@@ -185,8 +260,8 @@ def main() -> int:
         f"Third-party notices written: {OUTPUT_PATH.relative_to(REPOSITORY_ROOT)} "
         f"({len(crates)} crate(s))."
     )
-    for name in sorted(set(missing)):
-        print(f"  {name} ships no license file; the notice points at its repository.")
+    for name, version in sorted(set(missing)):
+        print(f"  {name} {version} ships no license file; the notice points at its repository.")
 
     return 0
 
