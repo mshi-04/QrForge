@@ -370,18 +370,39 @@ Maven Central への反映には時間差があり得る。Release workflow の 
 version で、両者は `v` の有無だけが違う。まだ tag を作っていない場合は「公開手順」の注釈付き tag 作成を
 先に済ませる。存在しない tag を指定すると `git switch` で止まる。
 
+手動公開は workflow の検証を迂回する経路なので、workflow が落とす条件をすべて手で確認する。1 つでも
+満たさないなら公開しない。
+
 ```powershell
 $version = "1.0.1" # Central Portal に deployment が無い patch version
 $sourceTag = "v$version"
+if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "version must be MAJOR.MINOR.PATCH" }
+
 git fetch --tags origin
+git fetch --no-tags origin main
 git switch --detach $sourceTag
 git status --short
 git rev-parse HEAD
 git rev-parse "$sourceTag^{commit}"
+git rev-parse FETCH_HEAD
+gh api "repos/lambdarc/qr-forge/commits/$(git rev-parse HEAD)/check-runs" --paginate `
+  --jq '.check_runs[] | "\(.conclusion) \(.name)"'
 ```
 
-`git status --short` は何も出力せず、2 つの commit ID は一致しなければならない。tag の source から
-`.so` を再生成し、公開する version で成果物を確認する。
+次をすべて満たすことを確認する。workflow の「Validate release tag」「Validate release commit」
+「Require successful CI on release commit」に対応する。
+
+| 確認 | 満たすべき状態 |
+|------|----------------|
+| tag の形式 | `$version` が `MAJOR.MINOR.PATCH`。形式違反は上の `throw` で止まる |
+| 作業ツリー | `git status --short` が何も出力しない |
+| release commit | `HEAD`、`$sourceTag` の commit、`FETCH_HEAD`（remote の `main` 最新）の 3 つが一致する |
+| CI | 列挙された check run の conclusion がすべて `success` |
+
+`FETCH_HEAD` と一致しない tag は `main` の最新を指していない。古い source を公開することになるため、
+`main` へのマージからやり直す。`success` 以外の check run が 1 つでもあれば公開しない。
+
+続けて tag の source から `.so` を再生成し、公開する version で成果物を確認する。
 
 ```powershell
 cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o qr-forge/src/main/jniLibs build --release `
