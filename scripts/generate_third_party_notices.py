@@ -187,7 +187,10 @@ def parse_spdx_atom(tokens: deque[str], license_id: str) -> bool:
     if token in {")", "AND", "OR"}:
         raise ValueError(f"misplaced {token}")
 
-    return token == license_id
+    # SPDX matches identifiers case-insensitively while operators stay case-sensitive, so a
+    # lowercase `or` is an identifier here and leaves the expression unparsed rather than silently
+    # reading as an operator.
+    return token.casefold() == license_id.casefold()
 
 
 def satisfied_by(expression: str, license_id: str) -> bool:
