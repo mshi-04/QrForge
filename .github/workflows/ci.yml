@@ -154,6 +154,9 @@ jobs:
           artifacts="$HOME/.m2/repository/io/github/lambdarc/qr-forge/$PUBLICATION_SMOKE_VERSION"
           test -f "$artifacts/qr-forge-$PUBLICATION_SMOKE_VERSION.pom"
           test -f "$artifacts/qr-forge-$PUBLICATION_SMOKE_VERSION.aar"
+          javadoc="$artifacts/qr-forge-$PUBLICATION_SMOKE_VERSION-javadoc.jar"
+          documented="$(unzip -Z1 "$javadoc" | grep -cv '^META-INF/')"
+          test "$documented" -gt 0
 
       - name: Build consumer from published coordinates
         shell: bash

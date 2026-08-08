@@ -221,7 +221,7 @@ consumer rule だけで JNI 契約が保たれているかを確かめられな�
 
 ## Maven Central への公開
 
-公開座標は `io.github.lambdarc:qr-forge:<version>`。release AAR、sources JAR、空の javadoc JAR、
+公開座標は `io.github.lambdarc:qr-forge:<version>`。release AAR、sources JAR、Dokka が生成する javadoc JAR、
 POM、Gradle Module Metadata を `:qr-forge` から公開する。公開 API と native library は release AAR に
 含まれるものを正典とし、sample app や Rust crate は Maven Central へ公開しない。
 
@@ -297,7 +297,7 @@ Maven Local に次の 5 つが揃っていることを確認する。
 | `qr-forge-$version.aar` | 3 ABI の `.so` が 1 行ずつ表示されること |
 | `qr-forge-$version-sources.jar` | 生成されていること |
 | `qr-forge-$version.module` | Gradle Module Metadata が生成されていること |
-| `qr-forge-$version-javadoc.jar` | 生成されていること。`JavadocJar.Empty()` のため中身は空 |
+| `qr-forge-$version-javadoc.jar` | Dokka が生成した公開 API の HTML を含むこと。`internal` の頁は含まない |
 
 release AAR の public API は `qr-forge/api/qrforge.api` と一致しなければならない。CI の `Verify Maven
 publication` は `0.0.0` で POM と AAR の存在だけを確認するため、公開する version での確認はこの手順で行う。

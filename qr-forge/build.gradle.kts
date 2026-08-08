@@ -6,6 +6,7 @@ import org.gradle.api.tasks.testing.Test
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.ktlint)
+    alias(libs.plugins.dokka)
     alias(libs.plugins.maven.publish)
 }
 
@@ -58,6 +59,17 @@ tasks.withType<Test>().configureEach {
     useJUnitPlatform()
 }
 
+// AGP の built-in Kotlin support では Dokka が source set を自動検出しないため、公開 API の
+// source root を明示する。internal 実装は suppress し、公開 API だけを収録する。
+dokka {
+    dokkaSourceSets.register("main") {
+        sourceRoots.from(file("src/main/java"))
+        suppressedFiles.from(file("src/main/java/io/github/lambdarc/qrforge/internal"))
+        jdkVersion.set(JavaVersion.VERSION_17.majorVersion.toInt())
+        reportUndocumented.set(false)
+    }
+}
+
 tasks.matching { task -> task.name.startsWith("publish") }.configureEach {
     doFirst {
         if (!versionName.isPresent) {
@@ -69,7 +81,7 @@ tasks.matching { task -> task.name.startsWith("publish") }.configureEach {
 mavenPublishing {
     configure(
         AndroidSingleVariantLibrary(
-            javadocJar = JavadocJar.Empty(),
+            javadocJar = JavadocJar.Dokka("dokkaGeneratePublicationHtml"),
             sourcesJar = SourcesJar.Sources(),
             variant = "release",
         ),
