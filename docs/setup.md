@@ -383,6 +383,10 @@ git fetch --tags origin
 if ($LASTEXITCODE -ne 0) { throw "tag の fetch に失敗した" }
 git fetch --no-tags origin main
 if ($LASTEXITCODE -ne 0) { throw "main の fetch に失敗した" }
+
+$remoteTag = @(git ls-remote --exit-code origin "refs/tags/$sourceTag")
+if ($LASTEXITCODE -ne 0 -or $remoteTag.Count -eq 0) { throw "$sourceTag が origin に存在しない" }
+
 git switch --detach $sourceTag
 if ($LASTEXITCODE -ne 0) { throw "$sourceTag を checkout できない" }
 
@@ -411,20 +415,26 @@ if ($unfinished.Count -ne 0) { throw "success でない check run がある: $($
 release commit」に対応する。最後まで例外なく到達した場合だけ次へ進む。`throw` で止まったら公開しない。
 
 `release commit が一致しない` で止まる場合、tag は `main` の最新を指していない。古い source を公開する
-ことになるため、`main` へのマージからやり直す。
+ことになるため、`main` へのマージからやり直す。`$sourceTag が origin に存在しない` で止まる場合、tag が
+push されていない。`git fetch --tags` はローカル専用 tag を削除しないため、この確認がないと push して
+いない tag の source を公開できてしまう。
 
-`FETCH_HEAD` と一致しない tag は `main` の最新を指していない。古い source を公開することになるため、
-`main` へのマージからやり直す。`success` 以外の check run が 1 つでもあれば公開しない。
-
-続けて tag の source から `.so` を再生成し、公開する version で成果物を確認する。
+続けて tag の source から `.so` を再生成し、公開する version で成果物を確認する。ここも失敗を検出せずに
+進むと、生成に失敗した成果物や前回のビルド結果を公開することになる。
 
 ```powershell
 cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o qr-forge/src/main/jniLibs build --release `
   --manifest-path rust/qr-forge-jni/Cargo.toml
+if ($LASTEXITCODE -ne 0) { throw ".so の再生成に失敗した" }
+python scripts/check_native_alignment.py
+if ($LASTEXITCODE -ne 0) { throw "64bit ABI が 16 KB 境界に整列していない" }
+
 .\gradlew.bat :qr-forge:assembleRelease :qr-forge:publishToMavenLocal `
   "-PVERSION_NAME=$version" `
   --no-configuration-cache
+if ($LASTEXITCODE -ne 0) { throw "release 成果物の生成に失敗した" }
 python scripts/check_public_api.py
+if ($LASTEXITCODE -ne 0) { throw "公開 API が qrforge.api と一致しない" }
 ```
 
 再生成した `.so` はコミット済みのものと差分が出得る。この差分は commit せず、「リリース前チェック」と
@@ -434,6 +444,7 @@ python scripts/check_public_api.py
 .\gradlew.bat :qr-forge:publishAndReleaseToMavenCentral `
   "-PVERSION_NAME=$version" `
   "-PsignAllPublications=true"
+if ($LASTEXITCODE -ne 0) { throw "Maven Central への公開に失敗した" }
 ```
 
 `$version` は release tag の `v$version` と生成 POM の version にも同じ値を使う。失敗した公開で使った
