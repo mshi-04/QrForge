@@ -3,22 +3,18 @@ plugins {
     alias(libs.plugins.ktlint)
 }
 
-ktlint {
-    version.set(libs.versions.ktlint.cli.get())
-}
-
 android {
-    namespace = "com.appvoyager.qrforge.sample"
+    namespace = "io.github.lambdarc.qrforge.sample"
     compileSdk {
-        version = release(36) {
+        version = release(37) {
             minorApiLevel = 1
         }
     }
 
     defaultConfig {
-        applicationId = "com.appvoyager.qrforge.sample"
+        applicationId = "io.github.lambdarc.qrforge.sample"
         minSdk = 28
-        targetSdk { version = release(36) }
+        targetSdk { version = release(37) }
         versionCode = 1
         versionName = "1.0"
 
@@ -27,7 +23,7 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -44,7 +40,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":qrforge"))
+    implementation(project(":qr-forge"))
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.core.ktx)

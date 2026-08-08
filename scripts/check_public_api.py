@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check the public API of the :qrforge library against a committed snapshot."""
+"""Check the public API of the :qr-forge library against a committed snapshot."""
 
 from __future__ import annotations
 
@@ -13,10 +13,14 @@ import zipfile
 from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
-AAR_PATH = REPOSITORY_ROOT / "qrforge" / "build" / "outputs" / "aar" / "qrforge-release.aar"
-SNAPSHOT_PATH = REPOSITORY_ROOT / "qrforge" / "api" / "qrforge.api"
-ASSEMBLE_COMMAND = "gradlew :qrforge:assembleRelease"
-INTERNAL_PACKAGE_PREFIX = "com.appvoyager.qrforge.internal."
+AAR_PATH = REPOSITORY_ROOT / "qr-forge" / "build" / "outputs" / "aar" / "qr-forge-release.aar"
+SNAPSHOT_PATH = REPOSITORY_ROOT / "qr-forge" / "api" / "qrforge.api"
+ASSEMBLE_COMMAND = (
+    r".\gradlew.bat :qr-forge:assembleRelease"
+    if os.name == "nt"
+    else "./gradlew :qr-forge:assembleRelease"
+)
+INTERNAL_PACKAGE_PREFIX = "io.github.lambdarc.qrforge.internal."
 SOURCE_FILE_MARKER = "Compiled from "
 DEFAULT_CONSTRUCTOR_MARKER = "kotlin.jvm.internal.DefaultConstructorMarker"
 

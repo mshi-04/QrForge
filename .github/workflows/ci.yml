@@ -9,13 +9,13 @@ on:
     branches:
       - main
       - develop
+      - "feature/**"
     types:
       - opened
       - synchronize
       - reopened
       - ready_for_review
   schedule:
-    # 毎週月曜 06:00 JST。コード変更なしに公開される advisory を検出する。
     - cron: "0 21 * * 0"
   workflow_dispatch:
 
@@ -55,10 +55,7 @@ jobs:
           java-version: "17"
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
-          components: rustfmt, clippy
+        run: rustup toolchain install
 
       - name: Check Rust format
         run: cargo fmt --all -- --check
@@ -69,31 +66,32 @@ jobs:
       - name: Test Rust workspace
         run: cargo test --workspace --all-targets
 
-      # cargo test --workspace --all-targets は doc test を含まないため別 step にする。
-      # qrforge-jni は cdylib で doc test を持てず --workspace だと warning が出るので package 指定。
       - name: Test Rust documentation
-        run: cargo test -p qrforge-core --doc
+        run: cargo test -p qr-forge-core --doc
 
       - name: Build Rust JNI crate
-        run: cargo build --manifest-path rust/qrforge-jni/Cargo.toml
+        run: cargo build --manifest-path rust/qr-forge-jni/Cargo.toml
 
       - name: Install Android NDK
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;27.2.12479018"
 
       - name: Install cargo-ndk
-        run: cargo install cargo-ndk --locked
+        run: cargo install cargo-ndk --version 4.1.2 --locked
 
       - name: Build native libraries
         run: |
           export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/27.2.12479018"
           export ANDROID_NDK_ROOT="$ANDROID_NDK_HOME"
-          cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o "$RUNNER_TEMP/qrforge-jniLibs" build --release --manifest-path rust/qrforge-jni/Cargo.toml
+          cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o "$RUNNER_TEMP/qr-forge-jniLibs" build --release --manifest-path rust/qr-forge-jni/Cargo.toml
 
       - name: Check native libraries were generated
         run: |
-          test -f "$RUNNER_TEMP/qrforge-jniLibs/arm64-v8a/libqrforge.so"
-          test -f "$RUNNER_TEMP/qrforge-jniLibs/armeabi-v7a/libqrforge.so"
-          test -f "$RUNNER_TEMP/qrforge-jniLibs/x86_64/libqrforge.so"
+          test -f "$RUNNER_TEMP/qr-forge-jniLibs/arm64-v8a/libqrforge.so"
+          test -f "$RUNNER_TEMP/qr-forge-jniLibs/armeabi-v7a/libqrforge.so"
+          test -f "$RUNNER_TEMP/qr-forge-jniLibs/x86_64/libqrforge.so"
+
+      - name: Check 16 KB page size alignment
+        run: python3 scripts/check_native_alignment.py "$RUNNER_TEMP/qr-forge-jniLibs"
 
   rust-audit:
     name: Rust Audit
@@ -122,73 +120,102 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "17"
+      - name: Setup Gradle build
+        uses: ./.github/actions/setup-gradle-build
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          cache-read-only: true
-
-      - name: Make Gradle wrapper executable
-        run: chmod +x ./gradlew
-
-      # lifecycle task ではなく個別の task path を指定する。built-in Kotlin の source set
-      # 検出が壊れた場合に、0 件 lint して成功するのではなく task not found で落とすため。
       - name: Check Kotlin format and style
-        run: ./gradlew :qrforge:ktlintCheck :app:ktlintCheck ktlintKotlinScriptCheck --no-daemon
+        run: ./gradlew :qr-forge:ktlintCheck :app:ktlintCheck ktlintKotlinScriptCheck --no-daemon
 
   android:
     name: Android Build
     runs-on: ubuntu-latest
+    env:
+      PUBLICATION_SMOKE_VERSION: "0.0.0"
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
           persist-credentials: false
 
-      - name: Setup Java
-        uses: actions/setup-java@v5
+      - name: Setup Gradle build
+        uses: ./.github/actions/setup-gradle-build
         with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          # cache を書くのはこの job だけにする。setup-gradle は Gradle User Home を内容
-          # ハッシュ単位の bundle に分けて保存するため、解決する依存の集合が違う job が
-          # 書き込むと数百 MiB の bundle がその数だけ増える。この job が最も広い依存を
-          # 解決するので、他 job が読む分もここで賄える。
-          # develop でだけ生成し、feature branch は develop 向け PR の base branch cache
-          # としてこれを使い回す。
           cache-read-only: ${{ github.ref != 'refs/heads/develop' }}
-
-      - name: Make Gradle wrapper executable
-        run: chmod +x ./gradlew
 
       - name: Check public API compatibility
         run: |
-          ./gradlew :qrforge:assembleRelease --no-daemon
+          ./gradlew :qr-forge:assembleRelease --no-daemon
           python3 scripts/check_public_api.py
 
+      - name: Verify Maven publication
+        shell: bash
+        run: |
+          ./gradlew :qr-forge:publishToMavenLocal "-PVERSION_NAME=$PUBLICATION_SMOKE_VERSION" --no-daemon --no-configuration-cache
+          artifacts="$HOME/.m2/repository/io/github/lambdarc/qr-forge/$PUBLICATION_SMOKE_VERSION"
+          test -f "$artifacts/qr-forge-$PUBLICATION_SMOKE_VERSION.pom"
+          test -f "$artifacts/qr-forge-$PUBLICATION_SMOKE_VERSION.aar"
+          test -f "$artifacts/qr-forge-$PUBLICATION_SMOKE_VERSION-sources.jar"
+          module="$artifacts/qr-forge-$PUBLICATION_SMOKE_VERSION.module"
+          test -f "$module"
+          python3 - "$module" "$PUBLICATION_SMOKE_VERSION" <<'PY'
+          import json, sys
+
+          module_path, version = sys.argv[1], sys.argv[2]
+          metadata = json.load(open(module_path, encoding="utf-8"))
+          component = metadata["component"]
+          coordinates = (component["group"], component["module"], component["version"])
+          if coordinates != ("io.github.lambdarc", "qr-forge", version):
+              print(f"module metadata declares {coordinates}", file=sys.stderr)
+              raise SystemExit(1)
+
+          files = {f["name"] for variant in metadata["variants"] for f in variant.get("files", [])}
+          for required in (f"qr-forge-{version}.aar", f"qr-forge-{version}-sources.jar"):
+              if required not in files:
+                  print(f"{required} is not registered in the module metadata: {sorted(files)}", file=sys.stderr)
+                  raise SystemExit(1)
+          PY
+          javadoc="$artifacts/qr-forge-$PUBLICATION_SMOKE_VERSION-javadoc.jar"
+          entries="$(unzip -Z1 "$javadoc")"
+          for page in \
+            qr-forge/io.github.lambdarc.qrforge/-qr-generator/index.html \
+            qr-forge/io.github.lambdarc.qrforge/-qr-options/index.html \
+            qr-forge/io.github.lambdarc.qrforge/-qr-generation-exception/index.html; do
+            if ! grep -Fxq "$page" <<<"$entries"; then
+              echo "The javadoc JAR is missing $page." >&2
+              exit 1
+            fi
+          done
+          if grep -qE '(^|/)internal(/|$)' <<<"$entries"; then
+            echo "The javadoc JAR must not document the internal package." >&2
+            exit 1
+          fi
+
+      - name: Build consumer from published coordinates
+        shell: bash
+        run: |
+          ./gradlew -p consumer-smoke assembleRelease "-PQR_FORGE_VERSION=$PUBLICATION_SMOKE_VERSION" --no-daemon
+          apk=consumer-smoke/build/outputs/apk/release/consumer-smoke-release-unsigned.apk
+          abis="$(unzip -Z1 "$apk" | grep -cE '^lib/(arm64-v8a|armeabi-v7a|x86_64)/libqrforge\.so$')"
+          test "$abis" -eq 3
+          python3 scripts/check_consumer_proguard.py "$apk"
+
+      - name: Check consumer ProGuard rules
+        run: |
+          ./gradlew :app:assembleRelease :qr-forge:assembleRelease --no-daemon
+          python3 scripts/check_consumer_proguard.py
+
       - name: Run Android checks
-        run: ./gradlew :qrforge:testDebugUnitTest :qrforge:assembleDebug :qrforge:assembleDebugAndroidTest :app:assembleDebug --no-daemon
+        run: ./gradlew :qr-forge:testDebugUnitTest :qr-forge:assembleDebug :qr-forge:assembleDebugAndroidTest :app:assembleDebug --no-daemon
 
   instrumented:
     name: Instrumented Test (API ${{ matrix.api-level }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    # 週次実行で emulator を 2 本起動する価値は薄い。
     if: github.event_name != 'schedule'
     strategy:
       fail-fast: false
       matrix:
         include:
-          # minSdk。Google APIs を使わないため default image で足りる。
           - api-level: 28
             target: default
           - api-level: 34
@@ -199,22 +226,11 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "17"
-
       - name: Check committed x86_64 native library
-        run: test -f qrforge/src/main/jniLibs/x86_64/libqrforge.so
+        run: test -f qr-forge/src/main/jniLibs/x86_64/libqrforge.so
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          cache-read-only: true
-
-      - name: Make Gradle wrapper executable
-        run: chmod +x ./gradlew
+      - name: Setup Gradle build
+        uses: ./.github/actions/setup-gradle-build
 
       - name: Enable KVM
         run: |
@@ -229,4 +245,4 @@ jobs:
           arch: x86_64
           target: ${{ matrix.target }}
           disable-animations: true
-          script: ./gradlew :qrforge:connectedDebugAndroidTest --no-daemon
+          script: ./gradlew :qr-forge:connectedDebugAndroidTest --no-daemon

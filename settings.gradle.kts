@@ -22,6 +22,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "QrForge"
+rootProject.name = "qr-forge"
 include(":app")
-include(":qrforge")
+include(":qr-forge")

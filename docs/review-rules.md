@@ -49,12 +49,29 @@
 - エラー文言が定数から生成されているか。literal 直書きに戻っていないか。
 - テスト都合の `internal` にその旨のコメントがあるか。
 
-### 4. 検証の妥当性
+### 4. 公開・配布
+
+判断基準は [api-design.md](api-design.md) の「互換性」と [setup.md](setup.md) の
+「Maven Central への公開」。
+
+- version の変更種別が Semantic Versioning と public API の互換性に合っているか。
+- tag 由来の version が `VERSION_NAME` と Maven 座標へ明示的に渡り、未指定や形式違反で
+  fail-fast するか。
+- release commit が protected `main` の最新であり、成功済み CI と同じ commit であることを
+  workflow が検証するか。`develop` の内容が `main` へマージ済みであることを手順が確認しているか。
+- release source から 3 ABI の `.so` を再ビルドし、その成果物で AAR を作るか。
+- Central Portal の namespace、tag ruleset、`release` environment、environment secrets の有効性を
+  source code だけで確認済みと断定していないか。外部設定の確認結果か未確認を報告しているか。
+- 公開済み version と release tag を上書き・移動・再利用する手順になっていないか。
+
+### 5. 検証の妥当性
 
 **「テストが通った」で止まらない。** その結果が今回の変更を検証できているかまで見る。
 
-- `rust/` に変更があるのに `qrforge/src/main/jniLibs/*.so` が差分に無い場合、ローカルと CI の
-  instrumented test は**コミット済みの変更前**の native library に対するもの。CI の `rust` job は
+- `rust/` に変更があるのに `qr-forge/src/main/jniLibs/arm64-v8a/libqrforge.so`、
+  `qr-forge/src/main/jniLibs/armeabi-v7a/libqrforge.so`、
+  `qr-forge/src/main/jniLibs/x86_64/libqrforge.so` が差分に無い場合、ローカルと CI の instrumented test は
+  **コミット済みの変更前**の native library に対するもの。CI の `rust` job は
   現在の source から 3 ABI を別途ビルドするが、コミット済み `.so` との一致までは検証しないため、
   両 job が緑でも `.so` が古い可能性は残る。
 - そのテストが今回の誤りを検出できるかを見る。PNG のヘッダと寸法しか見ないテストは、描画位置や
@@ -62,7 +79,7 @@
 - 環境要因で実行できなかった確認が、実施済みとして書かれていないか。
 - `.so` が更新されているなら、3 ABI すべてが揃っているか。
 
-### 5. テストと確認の十分さ
+### 6. テストと確認の十分さ
 
 判断基準は [unit-test.md](unit-test.md) と [setup.md](setup.md)。
 

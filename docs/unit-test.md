@@ -9,11 +9,11 @@
 
 | 置き場所 | 実行環境 | 検証すること |
 |---------|---------|-------------|
-| `rust/qrforge-core/src/` の対象モジュール内 | `cargo test` | 公開 API 経由では条件を作れない private 実装（現状 0 件） |
-| `rust/qrforge-core/tests/` | `cargo test` | 公開 API 経由の QR 生成、PNG bytes、描画結果、option 検証、core error |
+| `rust/qr-forge-core/src/` の対象モジュール内 | `cargo test` | 公開 API 経由では条件を作れない private 実装（現状 0 件） |
+| `rust/qr-forge-core/tests/` | `cargo test` | 公開 API 経由の QR 生成、PNG bytes、描画結果、option 検証、core error |
 | Rust 公開 API の rustdoc | `cargo test --doc` | 利用例がコンパイル・実行できること |
-| `qrforge/src/test/` | JVM（JUnit Jupiter） | 入力検証、option model、例外変換前の分岐 |
-| `qrforge/src/androidTest/` | 実機・エミュレーター | native library load、JNI 呼び出し、`Bitmap` decode |
+| `qr-forge/src/test/` | JVM（JUnit Jupiter） | 入力検証、option model、例外変換前の分岐 |
+| `qr-forge/src/androidTest/` | 実機・エミュレーター | native library load、JNI 呼び出し、`Bitmap` decode |
 
 ### どこに置くか決める順序
 
@@ -76,7 +76,7 @@ assert!(
 
 ### Rust（本リポジトリの判断）
 
-- qrforge-core の正常系テストは `-> Result<(), QrGenerationError>` を返し、`?` で生成エラーを
+- qr-forge-core の正常系テストは `-> Result<(), QrGenerationError>` を返し、`?` で生成エラーを
   伝播させる。
 - `Arrange`、`Act`、`Assert` の定型ラベルは置かない。必要なら空行で処理のまとまりを示す。
 - 境界値の根拠や依存ライブラリとの契約差など、「なぜ」を説明するコメントだけを残す。
@@ -114,22 +114,22 @@ fun qrOptionsUsesDefaultSize() {
 
 ### Rust core test
 
-公開 API は crate 外の利用者と同じ条件で検証するため、`rust/qrforge-core/tests/` の integration test
+公開 API は crate 外の利用者と同じ条件で検証するため、`rust/qr-forge-core/tests/` の integration test
 に置く（Book ch.11-03）。利用例は公開 API の rustdoc に `# Examples` として記述し、
 Documentation Test にする。
 
 private 実装を直接検証する Unit Test は、対象 source file 内の `#[cfg(test)] mod tests` に置く
 （Book ch.11-03）。ただしここに置いてよいのは、**公開 API 経由では入力条件を作れない場合に限る**。
 `validate_options` のように公開 API から到達できるものを個別にテストすると、実装詳細を固定して
-リファクタリングを妨げる。現状の `qrforge-core` に該当する private 実装はなく、in-src Unit Test は
+リファクタリングを妨げる。現状の `qr-forge-core` に該当する private 実装はなく、in-src Unit Test は
 0 件。
 
-`qrforge-core` は crate 先頭で `unwrap` / `expect` を deny している（[coding-rules.md](coding-rules.md)）。
+`qr-forge-core` は crate 先頭で `unwrap` / `expect` を deny している（[coding-rules.md](coding-rules.md)）。
 この attribute は同じ crate に属する `#[cfg(test)] mod tests` にも効くため、repository root の
 `clippy.toml` で `allow-unwrap-in-tests` と `allow-expect-in-tests` を有効にしている。production code
 での禁止はそのまま維持される。`tests/` の integration test は別 crate なので元から対象外。
 
-`rust/qrforge-core/tests/` の integration test は別 crate としてコンパイルされるが、package の
+`rust/qr-forge-core/tests/` の integration test は別 crate としてコンパイルされるが、package の
 `[dependencies]` と `[dev-dependencies]` の両方を利用できる。production code でも使う crate を
 `[dev-dependencies]` に重複定義しない。テストだけで使う crate や feature が必要な場合に限り、
 `[dev-dependencies]` へ追加する。現在の `image` crate は、production code が `png` crate で
@@ -145,7 +145,7 @@ native library に依存しない範囲に限る。テストのためだけに `
 
 ### Instrumented Test
 
-共通定数は `qrforge/src/androidTest/java/com/appvoyager/qrforge/QrTestFixtures.kt` に置く。
+共通定数は `qr-forge/src/androidTest/java/io/github/lambdarc/qrforge/QrTestFixtures.kt` に置く。
 assert は置かない。
 
 ローカルで実行する前に、直前の `rust/` 変更に対して `.so` を再ビルドしたか確認する。していなければ
