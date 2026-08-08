@@ -36,8 +36,11 @@ jobs:
       - name: Validate release commit
         shell: bash
         run: |
-          if ! git merge-base --is-ancestor "$GITHUB_SHA" "origin/develop"; then
-            echo "Release tags must point to a commit contained in develop." >&2
+          git fetch --no-tags origin develop
+          release_commit="$(git rev-parse "$GITHUB_SHA^{commit}")"
+          develop_commit="$(git rev-parse "FETCH_HEAD^{commit}")"
+          if [[ "$release_commit" != "$develop_commit" ]]; then
+            echo "Release tags must point to the latest commit on develop." >&2
             exit 1
           fi
 
