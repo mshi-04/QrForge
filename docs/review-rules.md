@@ -57,8 +57,8 @@
 - version の変更種別が Semantic Versioning と public API の互換性に合っているか。
 - tag 由来の version が `VERSION_NAME` と Maven 座標へ明示的に渡り、未指定や形式違反で
   fail-fast するか。
-- release commit が protected `develop` に含まれ、成功済み CI と同じ commit であることを
-  workflow が検証するか。
+- release commit が protected `main` の最新であり、成功済み CI と同じ commit であることを
+  workflow が検証するか。`develop` の内容が `main` へマージ済みであることを手順が確認しているか。
 - release source から 3 ABI の `.so` を再ビルドし、その成果物で AAR を作るか。
 - Central Portal の namespace、tag ruleset、`release` environment、environment secrets の有効性を
   source code だけで確認済みと断定していないか。外部設定の確認結果か未確認を報告しているか。

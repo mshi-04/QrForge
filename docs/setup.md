@@ -257,20 +257,25 @@ required reviewer 付きの `release` environment、environment secrets は work
 
 ### リリース前チェック
 
-公開 version は [api-design.md](api-design.md) のバージョニング方針に従って決める。release commit は
-最新の `origin/develop` と一致し、作業ツリーが clean で、その commit の CI がすべて成功していること。
+公開 version は [api-design.md](api-design.md) のバージョニング方針に従って決める。開発は `develop` で
+進め、公開する内容が揃った時点で `develop` を `main` へマージしてから tag を打つ。release commit は
+最新の `origin/main` と一致し、作業ツリーが clean で、その commit の CI がすべて成功していること。
 
 ```powershell
 $version = "1.0.0"
-git switch develop
-git pull --ff-only origin develop
+git fetch origin
+git switch main
+git pull --ff-only origin main
 git status --short
 git rev-parse HEAD
-git rev-parse origin/develop
+git rev-parse origin/main
+git rev-list --count origin/main..origin/develop
 ```
 
-`git status --short` は何も出力せず、2 つの commit ID は一致しなければならない。publication は tag を
-作る前に、実際に公開する version で Maven Local へ出力し、成果物一式を確認する。
+`git status --short` は何も出力せず、2 つの commit ID は一致しなければならない。最後の commit 数が
+`0` でなければ `develop` の内容が `main` へ届いておらず、公開しようとしているのは古い source になる。
+
+publication は tag を作る前に、実際に公開する version で Maven Local へ出力し、成果物一式を確認する。
 
 ```powershell
 .\gradlew.bat :qr-forge:assembleRelease :qr-forge:publishToMavenLocal `
@@ -299,21 +304,22 @@ publication` は `0.0.0` で POM と AAR の存在だけを確認するため、
 
 ### 公開手順
 
-`develop` で CI が成功し、公開する commit が確定したら `vMAJOR.MINOR.PATCH` 形式の tag を push する。
-Release workflow が tag の先頭 `v` を除いた値を Maven version として渡し、署名後に Central Portal へ
-upload・release する。Central は同じ座標・version の上書きを許可しないため、公開済み tag は再利用しない。
+`develop` を `main` へマージして CI が成功し、公開する commit が確定したら `vMAJOR.MINOR.PATCH` 形式の
+tag を push する。Release workflow が tag の先頭 `v` を除いた値を Maven version として渡し、署名後に
+Central Portal へ upload・release する。Central は同じ座標・version の上書きを許可しないため、
+公開済み tag は再利用しない。
 
 workflow は公開前に次を検証する。
 
 - tag が `vMAJOR.MINOR.PATCH` 形式であること
-- tag の指す commit が remote から取得した `develop` の最新 commit と一致すること
+- tag の指す commit が remote から取得した `main` の最新 commit と一致すること
 - その commit のすべての CI check run が success で終わっていること
 - 公開 API が `qr-forge/api/qrforge.api` と一致すること
 
-`develop` の最新かどうかは、workflow が `develop` を fetch した時点で判定する。その後の native
-build から upload までの間に `develop` が進んでも再判定しない。この検証が保証するのは「tag が古い
-commit を指していないこと」であって、公開の瞬間まで `develop` が動かないことではない。公開中は
-`develop` への merge を控える。
+`main` の最新かどうかは、workflow が `main` を fetch した時点で判定する。その後の native build から
+upload までの間に `main` が進んでも再判定しない。この検証が保証するのは「tag が古い commit を
+指していないこと」であって、公開の瞬間まで `main` が動かないことではない。公開中は `main` への
+merge を控える。
 
 `.so` は commit 済みのものをそのまま公開せず、tag の source から 3 ABI を再ビルドして
 `qr-forge/src/main/jniLibs/` を上書きしてから AAR を組み立てる。これにより、commit 済み `.so` が
@@ -353,7 +359,8 @@ Maven Central への反映には時間差があり得る。Release workflow の 
 
 - release tag を force push で移動しない。削除して同じ tag を作り直さない。
 - Central Portal で一度でも deployment が作成された version は再利用しない。
-- 原因を修正して `develop` の CI を通し、新しい patch version の tag で再実行する。
+- 原因を修正して `develop` から `main` へマージし直し、`main` の CI を通してから新しい patch version の
+  tag で再実行する。
 - GitHub Release を先に作っていた場合は公開を取り下げ、Maven Central で参照可能になってから再公開する。
 
 資格情報と署名 key を設定した環境から手動公開する場合は、release workflow が自動で行う検証を手で行う。

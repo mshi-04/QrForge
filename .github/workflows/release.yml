@@ -36,11 +36,11 @@ jobs:
       - name: Validate release commit
         shell: bash
         run: |
-          git fetch --no-tags origin develop
+          git fetch --no-tags origin main
           release_commit="$(git rev-parse "$GITHUB_SHA^{commit}")"
-          develop_commit="$(git rev-parse "FETCH_HEAD^{commit}")"
-          if [[ "$release_commit" != "$develop_commit" ]]; then
-            echo "Release tags must point to the latest commit on develop." >&2
+          main_commit="$(git rev-parse "FETCH_HEAD^{commit}")"
+          if [[ "$release_commit" != "$main_commit" ]]; then
+            echo "Release tags must point to the latest commit on main." >&2
             exit 1
           fi
 
