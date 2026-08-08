@@ -308,10 +308,14 @@ Maven Central への反映には時間差があり得る。Release workflow の 
 資格情報と署名 key を設定した環境から手動公開する場合は次を使う。
 
 ```powershell
+$version = "1.0.1" # 例: 公開失敗後に選んだ未使用の patch version
 .\gradlew.bat :qr-forge:publishAndReleaseToMavenCentral `
-  "-PVERSION_NAME=1.0.0" `
+  "-PVERSION_NAME=$version" `
   "-PsignAllPublications=true"
 ```
+
+`$version` は release tag の `v$version` と生成 POM の version にも同じ値を使う。失敗した公開で使った
+version や、Central Portal に deployment が存在する version は再利用しない。
 
 `VERSION_NAME` を省略したローカル build は `1.0.0-SNAPSHOT` として扱う。`publish` で始まる task は
 実行時に `VERSION_NAME` を必須とし、未指定なら artifact を送信する前に失敗する。`VERSION_NAME` を

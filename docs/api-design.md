@@ -148,12 +148,19 @@ version で行う。
 ### 互換性の判断
 
 - 既存 public API の関数名、引数、戻り値型、例外の意味、入力の解釈を変えない。
-- public model の primary constructor に default 値付き parameter を追加する変更は source compatibility
-  を保てても、既存 constructor の JVM descriptor が変わるため binary compatibility は保てない。
-- `QrOptions` に設定を追加して binary compatibility も維持する場合は、既存 descriptor の互換
-  constructor を残すか、既存 constructor を変えず factory など別の入口を追加する。
-- `QrGenerationException` に subclass を追加すると、利用者の網羅的な `when` が source incompatible に
-  なるため、後方互換な追加として扱わない。
+- Kotlin と Java の source compatibility、binary compatibility を個別に判断する。いずれかを壊す変更は
+  既存の入口を残して互換にできない限り `MAJOR` とする。
+
+| 変更 | Kotlin source | Kotlin binary | Java source | Java binary | version |
+|------|---------------|---------------|-------------|-------------|---------|
+| `QrOptions` の primary constructor へ default 値付き property を追加 | 再コンパイルすれば既存の引数省略呼び出しを維持できる | constructor と default-argument 用 descriptor が変わるため非互換 | 既存の `QrOptions(int, int)` がなくなるため非互換 | `(II)V` descriptor がなくなるため非互換 | `MAJOR` |
+| `QrGenerationException` へ subclass を追加 | 網羅的な `when` に分岐追加が必要になるため非互換 | JVM linkage は維持するが、既存の網羅的な `when` は新 subtype で実行時に失敗し得る | 通常の `catch`・`instanceof` 利用は維持できる | JVM linkage は維持するが、新 subtype を想定しない処理の振る舞いは変わり得る | Kotlin の契約を壊すため `MAJOR` |
+
+- `QrOptions` に設定を追加する場合は、既存の `QrOptions(int, int)` constructor を明示的に残すか、
+  primary constructor を変えず factory など別の入口を追加する。
+- `data class` が生成する `copy`、`componentN`、`equals`、`hashCode`、`toString` も公開 API または
+  文書化済みの振る舞いとして互換性を確認する。property 追加で `copy` の JVM descriptor が変わる
+  場合も、既存利用者に対して非互換となる。
 - 非同期 API は必要性が確認されてから追加する。今は同期のみ。
 - 値域を広げる変更は互換だが、狭める変更は非互換として扱う。
 
