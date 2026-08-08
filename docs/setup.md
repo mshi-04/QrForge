@@ -6,11 +6,11 @@
 
 | ツール | 条件 | 備考 |
 |--------|------|------|
-| Android Studio | 最新安定版 | `compileSdk 36.1` / `minSdk 28` をビルドできること |
+| Android Studio | 最新安定版 | `compileSdk 37.1` / `minSdk 28` をビルドできること |
 | JDK | 17 | Gradle build daemon・CI は Adoptium 17 を使用する |
 | Android NDK | r27 以降 | `ANDROID_NDK_HOME` / `ANDROID_NDK_ROOT` を設定する |
-| Rust toolchain | stable | `rustfmt`・`clippy` component 込み |
-| cargo-ndk | native library ビルド時は必須 | `cargo install cargo-ndk` |
+| Rust toolchain | `rust-toolchain.toml` で固定 | `rustup toolchain install` で channel・component・target が揃う |
+| cargo-ndk | native library ビルド時は必須 | `cargo install cargo-ndk --version 4.1.2 --locked` |
 | cargo-deny | 依存監査をローカルで再現する場合 | `cargo install cargo-deny --locked` |
 | Python | 3.10 以降 | repository 整合性 checker、公開 API checker に使用 |
 
@@ -86,6 +86,13 @@ jar tf qr-forge/build/outputs/apk/androidTest/debug/qr-forge-debug-androidTest.a
 
 各コマンドで 3 ABI が 1 行ずつ表示されることを確認する。欠けている ABI があれば再生成・同梱は
 未完了として扱う。
+
+- 64bit ABI は 16 KB page size の端末で読み込めるよう、LOAD segment が 16 KB 境界に整列していなければ
+  ならない。`armeabi-v7a` は 32bit のため対象外。
+
+```powershell
+python scripts/check_native_alignment.py
+```
 
 - 再ビルドしていない場合は、Android 側のテストが緑でも「native 側は未検証」として報告する。
 
@@ -163,6 +170,28 @@ python scripts/check_consumer_proguard.py
 
 `app` の `isMinifyEnabled` は、この検査を成立させるために有効にしている。無効へ戻さない。
 
+## 公開座標からの consumer 検証
+
+`app` は `:qr-forge` を project dependency として使うため、公開メタデータ経由の解決は通らない。
+`consumer-smoke/` はルートの build に含めない独立した Gradle build で、`mavenLocal()` から
+`io.github.lambdarc:qr-forge` を座標で解決し、minify 有効で組み立てる。POM と Gradle Module
+Metadata の不備、AAR 同梱 `proguard.txt` が利用側 R8 へ効かない状態は、この経路でしか検出できない。
+
+独立した build のため Android SDK の位置は `ANDROID_HOME` から解決する。設定していない環境では
+`consumer-smoke/local.properties` に `sdk.dir` を置く。
+
+```powershell
+.\gradlew.bat :qr-forge:publishToMavenLocal "-PVERSION_NAME=0.0.0" --no-configuration-cache
+.\gradlew.bat -p consumer-smoke assembleRelease "-PQR_FORGE_VERSION=0.0.0"
+python scripts/check_consumer_proguard.py consumer-smoke/build/outputs/apk/release/consumer-smoke-release-unsigned.apk
+```
+
+`check_consumer_proguard.py` は APK を引数で受け取ると、その APK だけを検査する。引数なしの
+呼び出しは `app` の release APK と release AAR の `proguard.txt` を検査する。
+
+`consumer-smoke/proguard-rules.pro` は空のまま維持する。keep rule を足すと、AAR 同梱の
+consumer rule だけで JNI 契約が保たれているかを確かめられなくなる。
+
 ## instrumented test のクラス絞り込み
 
 `--tests` は `connectedDebugAndroidTest` では効かない。instrumentation runner の引数を使い、PowerShell では引数全体を quote する。
@@ -184,7 +213,7 @@ python scripts/check_consumer_proguard.py
 | Kotlin を変更した（レイヤ問わず） | `.\gradlew.bat :qr-forge:ktlintCheck :app:ktlintCheck ktlintKotlinScriptCheck` |
 | 公開 API（`QrGenerator`・`QrOptions`・`QrGenerationException`） | 上記に加えて「公開 API の互換性確認」の 2 コマンド |
 | JNI が名前で解決する class・method（`NativeQrGenerator`、`GenerationFailed`、`nativeGenerateQrPng`） | 上記に加えて「利用側 R8 との互換性確認」の 2 コマンド。`consumer-rules.pro` の keep 対象も合わせて更新する |
-| Rust の依存を追加・更新した | `cargo deny check` |
+| Rust の依存を追加・更新した | `cargo deny check`、`python scripts/generate_third_party_notices.py` |
 | Instrumented test | `.\gradlew.bat :qr-forge:assembleDebugAndroidTest`、可能なら `.\gradlew.bat :qr-forge:connectedDebugAndroidTest` |
 | Sample app（`app/`） | `.\gradlew.bat :app:assembleDebug` |
 | ABI 追加・削除 | `.so` 再ビルド、`abiFilters`、README・本文書・CI をまとめて更新 |
@@ -208,6 +237,9 @@ artifact ID、Gradle project/module、Rust package などの機械識別子に�
    だけに bypass を許可する。
 5. GitHub Actions に `release` environment を作り、required reviewer と `v*` tag だけを許可する
    deployment rule を設定する。可能なら workflow 実行者自身による承認と管理者 bypass を禁止する。
+   承認できる維持者が 1 人しかいない間は self-review 禁止を有効にしない。environment の required
+   reviewer には bypass の仕組みがなく、有効にすると tag を push した本人が承認できずリリースが
+   止まる。2 人目の維持者が加わった時点で有効にする。
 6. `release` environment に次の secrets を登録する。
 
 | Secret | 内容 |
@@ -225,20 +257,25 @@ required reviewer 付きの `release` environment、environment secrets は work
 
 ### リリース前チェック
 
-公開 version は [api-design.md](api-design.md) のバージョニング方針に従って決める。release commit は
-最新の `origin/develop` と一致し、作業ツリーが clean で、その commit の CI がすべて成功していること。
+公開 version は [api-design.md](api-design.md) のバージョニング方針に従って決める。開発は `develop` で
+進め、公開する内容が揃った時点で `develop` を `main` へマージしてから tag を打つ。release commit は
+最新の `origin/main` と一致し、作業ツリーが clean で、その commit の CI がすべて成功していること。
 
 ```powershell
 $version = "1.0.0"
-git switch develop
-git pull --ff-only origin develop
+git fetch origin
+git switch main
+git pull --ff-only origin main
 git status --short
 git rev-parse HEAD
-git rev-parse origin/develop
+git rev-parse origin/main
+git rev-list --count origin/main..origin/develop
 ```
 
-`git status --short` は何も出力せず、2 つの commit ID は一致しなければならない。publication は tag を
-作る前に、実際に公開する version で Maven Local へ出力し、成果物一式を確認する。
+`git status --short` は何も出力せず、2 つの commit ID は一致しなければならない。最後の commit 数が
+`0` でなければ `develop` の内容が `main` へ届いておらず、公開しようとしているのは古い source になる。
+
+publication は tag を作る前に、実際に公開する version で Maven Local へ出力し、成果物一式を確認する。
 
 ```powershell
 .\gradlew.bat :qr-forge:assembleRelease :qr-forge:publishToMavenLocal `
@@ -267,21 +304,22 @@ publication` は `0.0.0` で POM と AAR の存在だけを確認するため、
 
 ### 公開手順
 
-`develop` で CI が成功し、公開する commit が確定したら `vMAJOR.MINOR.PATCH` 形式の tag を push する。
-Release workflow が tag の先頭 `v` を除いた値を Maven version として渡し、署名後に Central Portal へ
-upload・release する。Central は同じ座標・version の上書きを許可しないため、公開済み tag は再利用しない。
+`develop` を `main` へマージして CI が成功し、公開する commit が確定したら `vMAJOR.MINOR.PATCH` 形式の
+tag を push する。Release workflow が tag の先頭 `v` を除いた値を Maven version として渡し、署名後に
+Central Portal へ upload・release する。Central は同じ座標・version の上書きを許可しないため、
+公開済み tag は再利用しない。
 
 workflow は公開前に次を検証する。
 
 - tag が `vMAJOR.MINOR.PATCH` 形式であること
-- tag の指す commit が remote から取得した `develop` の最新 commit と一致すること
+- tag の指す commit が remote から取得した `main` の最新 commit と一致すること
 - その commit のすべての CI check run が success で終わっていること
 - 公開 API が `qr-forge/api/qrforge.api` と一致すること
 
-`develop` の最新かどうかは、workflow が `develop` を fetch した時点で判定する。その後の native
-build から upload までの間に `develop` が進んでも再判定しない。この検証が保証するのは「tag が古い
-commit を指していないこと」であって、公開の瞬間まで `develop` が動かないことではない。公開中は
-`develop` への merge を控える。
+`main` の最新かどうかは、workflow が `main` を fetch した時点で判定する。その後の native build から
+upload までの間に `main` が進んでも再判定しない。この検証が保証するのは「tag が古い commit を
+指していないこと」であって、公開の瞬間まで `main` が動かないことではない。公開中は `main` への
+merge を控える。
 
 `.so` は commit 済みのものをそのまま公開せず、tag の source から 3 ABI を再ビルドして
 `qr-forge/src/main/jniLibs/` を上書きしてから AAR を組み立てる。これにより、commit 済み `.so` が
@@ -321,7 +359,8 @@ Maven Central への反映には時間差があり得る。Release workflow の 
 
 - release tag を force push で移動しない。削除して同じ tag を作り直さない。
 - Central Portal で一度でも deployment が作成された version は再利用しない。
-- 原因を修正して `develop` の CI を通し、新しい patch version の tag で再実行する。
+- 原因を修正して `develop` から `main` へマージし直し、`main` の CI を通してから新しい patch version の
+  tag で再実行する。
 - GitHub Release を先に作っていた場合は公開を取り下げ、Maven Central で参照可能になってから再公開する。
 
 資格情報と署名 key を設定した環境から手動公開する場合は、release workflow が自動で行う検証を手で行う。
@@ -393,10 +432,10 @@ workflow は `.github/workflows/ci.yml`。`main`・`develop`・`feature/**` を 
 | CI job | ローカルで相当するコマンド |
 |--------|--------------------------|
 | `consistency` | `python scripts/check_repo_consistency.py` |
-| `rust` | `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets -- -D warnings`、`cargo test --workspace --all-targets`、`cargo test -p qr-forge-core --doc`、`cargo build --manifest-path rust/qr-forge-jni/Cargo.toml`、`cargo ndk`（3 ABI の `.so` 生成確認まで） |
+| `rust` | `cargo fmt --all -- --check`、`cargo clippy --workspace --all-targets -- -D warnings`、`cargo test --workspace --all-targets`、`cargo test -p qr-forge-core --doc`、`cargo build --manifest-path rust/qr-forge-jni/Cargo.toml`、`cargo ndk`（3 ABI の `.so` 生成確認まで）、`python scripts/check_native_alignment.py` |
 | `rust-audit` | `cargo deny check` |
 | `kotlin-lint` | `.\gradlew.bat :qr-forge:ktlintCheck :app:ktlintCheck ktlintKotlinScriptCheck` |
-| `android` | `.\gradlew.bat :qr-forge:assembleRelease` と `python scripts/check_public_api.py`、`.\gradlew.bat :qr-forge:publishToMavenLocal "-PVERSION_NAME=0.0.0"`、`.\gradlew.bat :app:assembleRelease :qr-forge:assembleRelease` と `python scripts/check_consumer_proguard.py`、`.\gradlew.bat :qr-forge:testDebugUnitTest :qr-forge:assembleDebug :qr-forge:assembleDebugAndroidTest :app:assembleDebug` |
+| `android` | `.\gradlew.bat :qr-forge:assembleRelease` と `python scripts/check_public_api.py`、`.\gradlew.bat :qr-forge:publishToMavenLocal "-PVERSION_NAME=0.0.0"`、「公開座標からの consumer 検証」の 3 コマンド、`.\gradlew.bat :app:assembleRelease :qr-forge:assembleRelease` と `python scripts/check_consumer_proguard.py`、`.\gradlew.bat :qr-forge:testDebugUnitTest :qr-forge:assembleDebug :qr-forge:assembleDebugAndroidTest :app:assembleDebug` |
 | `instrumented` | repository にコミット済みの `x86_64` `.so` を使う `.\gradlew.bat :qr-forge:connectedDebugAndroidTest`（CI は API 28 / 34 emulator） |
 
 `kotlin-lint` の指摘は `.\gradlew.bat ktlintFormat` で自動修正できる。code style と適用しない

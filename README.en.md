@@ -124,6 +124,13 @@ The Android library module packages `libqrforge.so` for each supported ABI.
 Published versions are available from Maven Central as `io.github.lambdarc:qr-forge:<version>`.
 Before the first release, QrForge can be used as the `:qr-forge` Android library module in this repository.
 
+## Security
+
+Report vulnerabilities through the process in [SECURITY.md](SECURITY.md), not in a public issue.
+
 ## License
 
 [MIT License](LICENSE)
+
+Copyright notices and license texts for the Rust crates statically linked into
+`libqrforge.so` are collected in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

@@ -159,11 +159,11 @@ class Dex:
         return types, methods
 
 
-def load_dexes() -> list[Dex]:
-    with zipfile.ZipFile(APK_PATH) as apk:
+def load_dexes(apk_path: Path) -> list[Dex]:
+    with zipfile.ZipFile(apk_path) as apk:
         names = [name for name in apk.namelist() if name.endswith(".dex")]
         if not names:
-            raise FileNotFoundError(f"{APK_PATH.name} contains no DEX")
+            raise FileNotFoundError(f"{apk_path.name} contains no DEX")
 
         return [Dex(apk.read(name)) for name in names]
 
@@ -213,13 +213,24 @@ def aar_errors() -> list[str]:
 
 
 def main() -> int:
-    for path in (APK_PATH, AAR_PATH):
-        if not path.is_file():
-            relative = path.relative_to(REPOSITORY_ROOT)
-            print(f"{relative} was not found. Run: {ASSEMBLE_COMMAND}", file=sys.stderr)
-            return 1
+    # An APK argument points at a consumer built from the published coordinates, where the AAR
+    # under qr-forge/build is not the artifact under test.
+    apk_path = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else APK_PATH
+    verify_packaged_rules = len(sys.argv) == 1
 
-    failures = apk_errors(load_dexes()) + aar_errors()
+    if not apk_path.is_file():
+        hint = f" Run: {ASSEMBLE_COMMAND}" if verify_packaged_rules else ""
+        print(f"{apk_path} was not found.{hint}", file=sys.stderr)
+        return 1
+
+    if verify_packaged_rules and not AAR_PATH.is_file():
+        relative = AAR_PATH.relative_to(REPOSITORY_ROOT)
+        print(f"{relative} was not found. Run: {ASSEMBLE_COMMAND}", file=sys.stderr)
+        return 1
+
+    failures = apk_errors(load_dexes(apk_path))
+    if verify_packaged_rules:
+        failures += aar_errors()
     if failures:
         print("Consumer ProGuard check failed:", file=sys.stderr)
         for failure in failures:
