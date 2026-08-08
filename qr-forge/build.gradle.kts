@@ -19,7 +19,7 @@ versionName.orNull?.let { requestedVersion ->
 }
 
 android {
-    namespace = "com.appvoyager.qrforge"
+    namespace = "io.github.lambdarc.qrforge"
     compileSdk {
         version = release(37) {
             minorApiLevel = 1

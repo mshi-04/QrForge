@@ -28,7 +28,7 @@ dependencies {
 ### Generate a Bitmap
 
 ```kotlin
-import com.appvoyager.qrforge.QrGenerator
+import io.github.lambdarc.qrforge.QrGenerator
 
 val bitmap = QrGenerator.createBitmap("https://example.com")
 imageView.setImageBitmap(bitmap)
@@ -37,7 +37,7 @@ imageView.setImageBitmap(bitmap)
 ### Generate PNG data
 
 ```kotlin
-import com.appvoyager.qrforge.QrGenerator
+import io.github.lambdarc.qrforge.QrGenerator
 
 val pngBytes: ByteArray = QrGenerator.createPngBytes("Hello QR")
 ```
@@ -45,8 +45,8 @@ val pngBytes: ByteArray = QrGenerator.createPngBytes("Hello QR")
 ### Configure the size and margin
 
 ```kotlin
-import com.appvoyager.qrforge.QrGenerator
-import com.appvoyager.qrforge.QrOptions
+import io.github.lambdarc.qrforge.QrGenerator
+import io.github.lambdarc.qrforge.QrOptions
 
 val bitmap = QrGenerator.createBitmap(
     text = "https://example.com",
@@ -80,8 +80,8 @@ A blank string or an out-of-range option causes an `IllegalArgumentException`. L
 `QrGenerationException` is a sealed class, so callers can handle every library failure with an exhaustive `when` expression.
 
 ```kotlin
-import com.appvoyager.qrforge.QrGenerationException
-import com.appvoyager.qrforge.QrGenerator
+import io.github.lambdarc.qrforge.QrGenerationException
+import io.github.lambdarc.qrforge.QrGenerator
 
 try {
     val bitmap = QrGenerator.createBitmap("https://example.com")

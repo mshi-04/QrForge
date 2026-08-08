@@ -1,6 +1,6 @@
--keepclasseswithmembernames class com.appvoyager.qrforge.internal.NativeQrGenerator {
+-keepclasseswithmembernames class io.github.lambdarc.qrforge.internal.NativeQrGenerator {
     native <methods>;
 }
--keep class com.appvoyager.qrforge.internal.NativeQrGenerator$GenerationFailed {
+-keep class io.github.lambdarc.qrforge.internal.NativeQrGenerator$GenerationFailed {
     <init>(java.lang.String);
 }

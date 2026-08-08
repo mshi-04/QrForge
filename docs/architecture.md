@@ -13,8 +13,8 @@
 
 ```text
 app (sample)
-  └→ Kotlin wrapper        qr-forge/src/main/java/com/appvoyager/qrforge/
-       └→ Kotlin JNI binding  qr-forge/src/main/java/com/appvoyager/qrforge/internal/
+  └→ Kotlin wrapper        qr-forge/src/main/java/io/github/lambdarc/qrforge/
+       └→ Kotlin JNI binding  qr-forge/src/main/java/io/github/lambdarc/qrforge/internal/
             └→ Rust JNI bridge   rust/qr-forge-jni/
                  └→ Rust core       rust/qr-forge-core/
 ```
@@ -24,7 +24,7 @@ app (sample)
 | レイヤ | 配置 | 成果物 |
 |--------|------|--------|
 | sample app | `app/` | 動作確認用 APK |
-| Kotlin wrapper | `qr-forge/src/main/java/com/appvoyager/qrforge/` | public API |
+| Kotlin wrapper | `qr-forge/src/main/java/io/github/lambdarc/qrforge/` | public API |
 | Kotlin JNI binding | `.../qrforge/internal/` | `internal` な native binding |
 | Rust JNI bridge | `rust/qr-forge-jni/` | `libqrforge.so`（cdylib） |
 | Rust core | `rust/qr-forge-core/` | rlib（Android 非依存） |

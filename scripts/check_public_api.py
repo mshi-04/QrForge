@@ -20,7 +20,7 @@ ASSEMBLE_COMMAND = (
     if os.name == "nt"
     else "./gradlew :qr-forge:assembleRelease"
 )
-INTERNAL_PACKAGE_PREFIX = "com.appvoyager.qrforge.internal."
+INTERNAL_PACKAGE_PREFIX = "io.github.lambdarc.qrforge.internal."
 SOURCE_FILE_MARKER = "Compiled from "
 DEFAULT_CONSTRUCTOR_MARKER = "kotlin.jvm.internal.DefaultConstructorMarker"
 

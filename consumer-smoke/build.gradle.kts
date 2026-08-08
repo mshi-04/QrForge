@@ -6,7 +6,7 @@ val consumedVersion = providers.gradleProperty("QR_FORGE_VERSION").orNull
     ?: throw GradleException("QR_FORGE_VERSION must be provided with -P.")
 
 android {
-    namespace = "com.appvoyager.smoke"
+    namespace = "io.github.lambdarc.smoke"
     compileSdk {
         version = release(37) {
             minorApiLevel = 1
@@ -14,7 +14,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.appvoyager.smoke"
+        applicationId = "io.github.lambdarc.smoke"
         minSdk = 28
         targetSdk { version = release(37) }
         versionCode = 1
