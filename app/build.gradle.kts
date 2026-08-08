@@ -6,7 +6,7 @@ plugins {
 android {
     namespace = "com.appvoyager.qrforge.sample"
     compileSdk {
-        version = release(36) {
+        version = release(37) {
             minorApiLevel = 1
         }
     }
@@ -14,7 +14,7 @@ android {
     defaultConfig {
         applicationId = "com.appvoyager.qrforge.sample"
         minSdk = 28
-        targetSdk { version = release(36) }
+        targetSdk { version = release(37) }
         versionCode = 1
         versionName = "1.0"
 
